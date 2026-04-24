@@ -2,317 +2,276 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
 <meta name="theme-color" content="#0d1f3a" />
 <title>ドローンサウンド Plus by 川越バイオリン教室</title>
-<meta name="description" content="川越バイオリン教室ドローンサウンドの拡張版。和声の種類・音律・音色を広げた実験版。" />
+<meta name="description" content="メトロノーム中心のドローンサウンド拡張版。Tap tempo、テンポマーカー、コード進行でドローン連動。" />
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
 
-<!-- =========================================== -->
-<!-- MENU VIEW                                   -->
-<!-- =========================================== -->
-<main class="view view-menu" id="view-menu">
-  <div class="menu-hero">
-    <h1 class="menu-title">ドローンサウンド Plus</h1>
-    <p class="menu-byline">by 川越バイオリン教室</p>
-    <p class="menu-tagline">耳の師匠を、ポケットに。（拡張版）</p>
-  </div>
+<main class="view-metro" id="view-metro">
 
-  <nav class="menu-cards">
-    <button class="menu-card primary" data-nav="drone">
-      <div class="menu-card-icon">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M2 12 Q5 4 8 12 T14 12 T20 12 T26 12" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="menu-card-text">
-        <h3>ドローンモード</h3>
-        <p>キー、度数、音律、和音、音色を選んで持続音を鳴らす</p>
-      </div>
-      <div class="menu-card-arrow">›</div>
-    </button>
-
-    <button class="menu-card" data-nav="progression">
-      <div class="menu-card-icon">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M7 3 L17 3 L20 21 L4 21 Z" stroke-linejoin="round"/>
-          <line x1="12" y1="7" x2="16" y2="15" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="menu-card-text">
-        <h3>メトロノーム & コード進行</h3>
-        <p>BPM と拍子、小節ごとのコードを決めて一緒に練習</p>
-      </div>
-      <div class="menu-card-arrow">›</div>
-    </button>
-
-    <button class="menu-card" data-nav="reading">
-      <div class="menu-card-icon">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M4 5v14a1 1 0 0 0 1.3 1l5.7-2 5.7 2a1 1 0 0 0 1.3-1V5a1 1 0 0 0-1.3-1l-5.7 2L5.3 4A1 1 0 0 0 4 5z"/>
-        </svg>
-      </div>
-      <div class="menu-card-text">
-        <h3>読み物</h3>
-        <p>主音の取り方、音律、倍音の仕組み</p>
-      </div>
-      <div class="menu-card-arrow">›</div>
-    </button>
-  </nav>
-
-  <p class="menu-footer">ネットワーク通信・追跡・広告なし。設定はこの端末内だけに保存されます。</p>
-</main>
-
-<!-- =========================================== -->
-<!-- DRONE MODE VIEW                             -->
-<!-- =========================================== -->
-<div class="view view-drone" id="view-drone" hidden>
-  <header class="topbar">
-    <button class="icon-btn back-btn" data-nav="menu" aria-label="メニュー">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
-    </button>
-    <h1>ドローンモード</h1>
-    <button id="btn-settings" class="icon-btn" aria-label="設定">
+  <!-- Top bar: settings / key / info -->
+  <header class="top-bar">
+    <button class="icon-btn" id="btn-settings" aria-label="設定">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
       </svg>
     </button>
+
+    <button class="key-display" id="btn-key">
+      <span id="key-label">A 長調</span>
+      <svg viewBox="0 0 10 6" width="8" height="5" fill="currentColor"><path d="M0 0 L5 6 L10 0 Z"/></svg>
+    </button>
+
+    <button class="icon-btn" id="btn-info" aria-label="使い方">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 16v-4"/><path d="M12 8h.01"/>
+      </svg>
+    </button>
   </header>
 
-  <main class="app">
-    <div class="row row-header">
-      <button id="scale-menu" class="chip chip-small" aria-haspopup="true">
-        <span id="key-display">A 長調</span>
-        <svg viewBox="0 0 10 6" width="8" height="5" fill="currentColor"><path d="M0 0 L5 6 L10 0 Z"/></svg>
-      </button>
-      <div class="spacer"></div>
-      <div class="meta">
-        <span id="ref-label">A=442</span>
-        <span id="cents-label" class="accent">ET ±0¢</span>
-      </div>
+  <!-- BPM hero: the center of this whole app -->
+  <section class="bpm-hero">
+    <div class="bpm-display">
+      <span class="bpm-quarter">♩ =</span>
+      <span class="bpm-number" id="bpm-number" role="button" tabindex="0" aria-label="BPMを数値入力で編集">120</span>
+    </div>
+    <div class="tempo-marker" id="tempo-marker">Allegro</div>
+
+    <div class="bpm-buttons">
+      <button class="bpm-btn" data-delta="-10" aria-label="BPM -10">−10</button>
+      <button class="bpm-btn" data-delta="-1" aria-label="BPM -1">−1</button>
+      <button class="bpm-btn" data-delta="1" aria-label="BPM +1">+1</button>
+      <button class="bpm-btn" data-delta="10" aria-label="BPM +10">+10</button>
     </div>
 
-    <div class="ring-wrap">
-      <svg class="ring-svg" viewBox="-150 -150 300 300" aria-hidden="true">
-        <circle cx="0" cy="0" r="140" fill="rgba(255,255,255,0.03)" />
-        <circle cx="0" cy="0" r="140" fill="none" stroke="url(#ringGrad)" stroke-width="1.2" />
-        <defs>
-          <linearGradient id="ringGrad" x1="0%" x2="100%" y1="0%" y2="100%">
-            <stop offset="0%" stop-color="#edb959"/>
-            <stop offset="50%" stop-color="#70c7a6"/>
-            <stop offset="100%" stop-color="#edb959"/>
-          </linearGradient>
-        </defs>
+    <input type="range" id="bpm-slider" class="bpm-slider" min="20" max="300" value="120" />
+
+    <button class="tap-tempo" id="tap-tempo">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+        <path d="M12 2 L3 14 H10 L9 22 L21 9 H14 Z"/>
       </svg>
-      <div class="ring-buttons" id="ring-buttons"></div>
-      <div class="ring-center">
-        <div class="degree-label" id="ring-degree">Ⅰ</div>
-        <div class="pitch-name" id="ring-pitch">A</div>
-        <div class="hz" id="ring-hz">220.0 Hz</div>
-      </div>
+      <span>TAP TEMPO</span>
+    </button>
+
+    <input type="number" id="bpm-input" class="bpm-input-hidden" min="20" max="300" step="1" inputmode="numeric" />
+  </section>
+
+  <!-- Time signature -->
+  <section class="field-block">
+    <h3 class="field-label">拍子</h3>
+    <div class="chip-row" id="time-sig-chips">
+      <button class="chip" data-sig="2-4">2/4</button>
+      <button class="chip" data-sig="4-4">4/4</button>
+      <button class="chip" data-sig="3-4">3/4</button>
+      <button class="chip" data-sig="3-8">3/8</button>
+      <button class="chip" data-sig="6-8">6/8</button>
     </div>
+  </section>
 
-    <div class="row row-pills" id="degree-row"></div>
+  <!-- Beat indicator -->
+  <section class="beat-indicator">
+    <div class="beat-dots" id="beat-dots"></div>
+  </section>
 
-    <div class="row row-pills" id="tuning-row">
-      <button class="pill" data-tuning="equalTemperament">平均律</button>
-      <button class="pill" data-tuning="pythagorean">ピタゴラス</button>
-      <button class="pill active" data-tuning="justIntonation">純正律</button>
-      <button id="btn-tuning-info" class="icon-btn small" aria-label="音律の解説">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="8"/>
-          <line x1="12" y1="12" x2="12" y2="16"/>
-        </svg>
-      </button>
+  <!-- Count-in -->
+  <section class="field-block">
+    <h3 class="field-label">カウントイン</h3>
+    <div class="chip-row" id="count-in-chips">
+      <button class="chip" data-count="0">オフ</button>
+      <button class="chip" data-count="1">1 小節</button>
+      <button class="chip" data-count="2">2 小節</button>
     </div>
+  </section>
 
-    <div class="row row-scroll" id="chord-row"></div>
-
-    <div class="row row-pills" id="quality-row" hidden>
-      <button class="pill small" data-quality="major">メジャー</button>
-      <button class="pill small" data-quality="minor">マイナー</button>
+  <!-- Chord progression editor -->
+  <section class="field-block bars-section">
+    <div class="bars-header">
+      <h3 class="field-label">小節ごとのコード</h3>
+      <button class="text-btn" id="add-bar">＋ 小節追加</button>
     </div>
+    <div class="bars-list" id="bars-list"></div>
+  </section>
 
-    <div class="row row-scroll" id="timbre-row"></div>
+  <!-- START/STOP button -->
+  <section class="transport-section">
+    <button class="big-play" id="transport-btn">
+      <svg class="play-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="stop-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+      <span class="play-label" id="transport-label">START</span>
+    </button>
+    <div class="transport-status" id="transport-status">待機中</div>
+  </section>
 
-    <div class="bottom-spacer"></div>
-  </main>
-
-  <div class="play-dock">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
-      <path d="M3 10v4h4l5 5V5L7 10H3z"/>
-    </svg>
+  <!-- Volume -->
+  <section class="volume-row">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 10v4h4l5 5V5L7 10H3z"/></svg>
     <input type="range" id="volume" min="0" max="100" value="72" aria-label="音量" />
-    <button id="play-btn" class="fab" aria-label="再生">
-      <svg class="play-icon" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
-        <path d="M8 5v14l11-7z"/>
-      </svg>
-      <svg class="stop-icon" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" hidden>
-        <rect x="6" y="6" width="12" height="12" rx="1"/>
-      </svg>
-    </button>
-  </div>
-</div>
+  </section>
 
-<!-- =========================================== -->
-<!-- PROGRESSION VIEW                            -->
-<!-- =========================================== -->
-<div class="view view-progression" id="view-progression" hidden>
-  <header class="topbar">
-    <button class="icon-btn back-btn" data-nav="menu" aria-label="メニュー">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
-    </button>
-    <h1>メトロノーム & コード進行</h1>
-    <span style="width: 40px;"></span>
-  </header>
-  <main class="sheet-body standalone">
-    <label class="field">
-      <span class="field-label">BPM</span>
-      <div class="field-row">
-        <input type="range" id="bpm" min="20" max="300" value="80" />
-        <input type="number" id="bpm-input" class="num accent" min="20" max="300" step="1" value="80" inputmode="numeric" />
-      </div>
-    </label>
-    <label class="field">
-      <span class="field-label">拍子</span>
-      <select id="beats-per-bar">
-        <option value="2-4">2 / 4</option>
-        <option value="4-4" selected>4 / 4</option>
-        <option value="3-4">3 / 4</option>
-        <option value="3-8">3 / 8</option>
-        <option value="6-8">6 / 8</option>
-      </select>
-    </label>
-    <label class="field">
-      <span class="field-label">カウントイン</span>
-      <select id="count-in">
-        <option value="0">なし</option>
-        <option value="1" selected>1 小節</option>
-        <option value="2">2 小節</option>
-      </select>
-    </label>
-    <div class="field">
-      <div class="field-label-row">
-        <span class="field-label">小節ごとのコード</span>
-        <button id="add-bar" class="text-btn">＋ 小節を追加</button>
-      </div>
-      <div id="bars-editor"></div>
-    </div>
-    <button id="progression-toggle" class="big-btn">進行スタート</button>
-    <div class="progression-status" id="progression-status">待機中</div>
-  </main>
-</div>
+  <div class="bottom-spacer"></div>
+</main>
 
-<!-- =========================================== -->
-<!-- READING VIEW                                -->
-<!-- =========================================== -->
-<div class="view view-reading" id="view-reading" hidden>
-  <header class="topbar">
-    <button class="icon-btn back-btn" data-nav="menu" aria-label="メニュー">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
-    </button>
-    <h1>読み物</h1>
-    <span style="width: 40px;"></span>
-  </header>
-  <main class="sheet-body standalone" id="reading-list">
-    <button class="reading-card" data-reading="tonicTuning">
-      <div class="reading-card-title">主音の取り方</div>
-      <div class="reading-card-sub">独奏・ピアノ伴奏・弦楽合奏のどれを選ぶか</div>
-    </button>
-    <button class="reading-card" data-reading="tunings">
-      <div class="reading-card-title">音律について</div>
-      <div class="reading-card-sub">平均律・ピタゴラス・純正律の違い</div>
-    </button>
-    <button class="reading-card" data-reading="harmonics">
-      <div class="reading-card-title">倍音プロファイル</div>
-      <div class="reading-card-sub">各音色がどの倍音で作られているか</div>
-    </button>
-    <button class="reading-card" data-reading="about">
-      <div class="reading-card-title">このアプリについて</div>
-      <div class="reading-card-sub">コンセプト、プライバシー、開発元</div>
-    </button>
-  </main>
-</div>
-
-<!-- =========================================== -->
-<!-- READING ARTICLE VIEW                        -->
-<!-- =========================================== -->
-<div class="view view-article" id="view-article" hidden>
-  <header class="topbar">
-    <button class="icon-btn back-btn" data-nav="reading" aria-label="読み物一覧">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
-    </button>
-    <h1 id="article-title"></h1>
-    <span style="width: 40px;"></span>
-  </header>
-  <main class="sheet-body article" id="article-body"></main>
-</div>
-
-<!-- =========================================== -->
-<!-- SETTINGS SHEET                              -->
-<!-- =========================================== -->
+<!-- ============================================= -->
+<!-- SETTINGS SHEET                                 -->
+<!-- ============================================= -->
 <div class="sheet" id="sheet-settings" hidden>
   <div class="sheet-head">
     <h2>設定</h2>
     <button class="icon-btn close-btn" data-close="sheet-settings" aria-label="閉じる">&times;</button>
   </div>
   <div class="sheet-body">
-    <label class="field">
-      <span class="field-label">基準 A (Hz)</span>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">調（主音 × スケール）</h3>
+      <div class="field">
+        <span class="field-sublabel">主音</span>
+        <select id="tonic-pc"></select>
+      </div>
+      <div class="field">
+        <span class="field-sublabel">スケール</span>
+        <div class="chip-row" id="scale-chips">
+          <button class="chip" data-scale="major">長調</button>
+          <button class="chip" data-scale="naturalMinor">短調(自然)</button>
+          <button class="chip" data-scale="harmonicMinor">短調(和声)</button>
+        </div>
+      </div>
+      <label class="check-row">
+        <input type="checkbox" id="sync-quality" />
+        <span>度数に合わせて三度を自動切替</span>
+      </label>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">音律</h3>
+      <div class="chip-row" id="tuning-chips">
+        <button class="chip" data-tuning="equalTemperament">平均律</button>
+        <button class="chip" data-tuning="pythagorean">ピタゴラス</button>
+        <button class="chip" data-tuning="justIntonation">純正律</button>
+      </div>
+      <small id="tuning-hint" class="settings-hint"></small>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">主音の取り方</h3>
+      <select id="tonic-tuning">
+        <option value="pythagoreanFromA">独奏 (基準Aから純5度連鎖)</option>
+        <option value="equalTemperament">ピアノ伴奏 (平均律)</option>
+        <option value="temperedFifthChain">弦楽合奏 (5度を-2¢狭め)</option>
+        <option value="customHz">カスタム (Hz直接指定)</option>
+      </select>
+      <small id="tonic-tuning-hint" class="settings-hint"></small>
+      <div class="field" id="custom-hz-field" hidden>
+        <span class="field-sublabel">主音周波数 (Hz)</span>
+        <input type="number" id="custom-hz" min="20" max="8000" step="0.01" value="256" inputmode="decimal" />
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">基準 A (Hz)</h3>
       <select id="reference-a">
         <option>415</option><option>430</option><option>432</option><option>440</option>
         <option>441</option><option selected>442</option><option>443</option>
         <option>444</option><option>446</option><option>466</option>
       </select>
-    </label>
-    <label class="field">
-      <span class="field-label">主音の取り方</span>
-      <select id="tonic-tuning">
-        <option value="pythagoreanFromA">独奏・無伴奏 (純5度連鎖)</option>
-        <option value="equalTemperament">ピアノ伴奏 (平均律)</option>
-        <option value="temperedFifthChain">弦楽合奏 (5度を-2¢狭め)</option>
-        <option value="customHz">カスタム (Hz 直接指定)</option>
-      </select>
-      <small id="tonic-tuning-detail" style="color: var(--text-dim); font-size: 11px; line-height: 1.5;"></small>
-    </label>
-    <label class="field" id="custom-hz-field" hidden>
-      <span class="field-label">主音周波数 (Hz)</span>
-      <input type="number" id="custom-hz" min="20" max="8000" step="0.01" value="256" inputmode="decimal" />
-      <small style="color: var(--text-dim); font-size: 11px; line-height: 1.5;">指定した Hz がⅠ度（主音）になります。度数・音律の設定はそのまま適用されます。</small>
-    </label>
-    <label class="field">
-      <span class="field-label">起動時の主音</span>
-      <select id="default-tonic"></select>
-    </label>
-    <label class="field">
-      <span class="field-label">起動時のスケール</span>
-      <select id="default-scale"></select>
-    </label>
-    <label class="field check">
-      <input type="checkbox" id="sync-quality" checked />
-      <span>度数に合わせて三度を自動切替</span>
-    </label>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">ドローンの和音構成</h3>
+      <div class="chip-row chip-row-wrap" id="chord-chips">
+        <button class="chip" data-chord="root">単音</button>
+        <button class="chip" data-chord="rootFifth">1+5</button>
+        <button class="chip" data-chord="rootOctave">1+8</button>
+        <button class="chip" data-chord="rootFifthOctave">1+5+8</button>
+        <button class="chip" data-chord="triad">1+3+5</button>
+        <button class="chip" data-chord="triadOctave">1+3+5+8</button>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">音色</h3>
+      <div class="chip-row chip-row-wrap" id="timbre-chips">
+        <button class="chip" data-timbre="pureSine">Pure Sine</button>
+        <button class="chip" data-timbre="warmPad">Warm Pad</button>
+        <button class="chip" data-timbre="brightOrgan">Bright Organ</button>
+        <button class="chip" data-timbre="tambura">Tambura</button>
+        <button class="chip" data-timbre="celloEnsemble">Cello</button>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">アクセント</h3>
+      <label class="check-row">
+        <input type="checkbox" id="accent-first-beat" checked />
+        <span>各小節の第1拍を強調</span>
+      </label>
+    </section>
+
   </div>
 </div>
 
-<!-- Tuning info sheet -->
-<div class="sheet" id="sheet-tuning" hidden>
+<!-- ============================================= -->
+<!-- INFO SHEET                                     -->
+<!-- ============================================= -->
+<div class="sheet" id="sheet-info" hidden>
   <div class="sheet-head">
-    <h2>音律について</h2>
-    <button class="icon-btn close-btn" data-close="sheet-tuning" aria-label="閉じる">&times;</button>
+    <h2>使い方</h2>
+    <button class="icon-btn close-btn" data-close="sheet-info" aria-label="閉じる">&times;</button>
   </div>
   <div class="sheet-body">
-    <p class="intro">本アプリは「曲の調（主音）」と「ドローンの度数」を分けて扱います。音律は主音からドローンまでの音程、およびドローン和音の内部音程に適用されます。同じ C でも C 長調のⅠ度と G 長調のⅣ度では、純正律では絶対周波数が違います。</p>
-    <h3>平均律</h3>
-    <p>1 オクターブを 12 等分した現代の標準。どの調に移っても響きが同じで、すべての協和音がわずかに濁ります。</p>
-    <h3>ピタゴラス</h3>
-    <p>主音から純 5 度（3:2）の連鎖で構築した古典音律。5 度と 4 度は綺麗に澄むが、長 3 度 (81:64) は平均律より +7.8¢ 広く、旋律として歌いやすい。バイオリンの旋律で好まれる並び。</p>
-    <h3>純正律</h3>
-    <p>主音に対して 3 度 5:4、5 度 3:2、6 度 5:3 の整数比。長 3 度は平均律より -13.7¢ 低く、和音のハモリ密度が段違い。合奏とコード練習の相棒。</p>
+    <section class="info-section">
+      <h3>基本操作</h3>
+      <ol>
+        <li><strong>BPM を設定</strong>：大きな数字をタップ→直接入力、または ±1/±10 ボタン・下のスライダーで調整</li>
+        <li><strong>Tap Tempo</strong>：タップ間隔の平均から BPM を自動算出</li>
+        <li><strong>拍子</strong>：2/4, 4/4, 3/4, 3/8, 6/8 から選ぶ</li>
+        <li><strong>カウントイン</strong>：START 押下から何小節分クリックしてから本番に入るか</li>
+        <li><strong>小節ごとのコード</strong>：各小節で何度の和音を鳴らすか (Ⅰ〜Ⅶ と Major/minor)</li>
+        <li><strong>START</strong>：メトロノームとドローン和音が連動して鳴り出す</li>
+      </ol>
+    </section>
+
+    <section class="info-section">
+      <h3>主音の取り方</h3>
+      <p><strong>独奏（デフォルト）</strong>：基準Aから純5度連鎖。G-D-A-Eが弦楽器の開放弦調弦と一致。無伴奏バッハ・スケール・重音練習向け。</p>
+      <p><strong>ピアノ伴奏</strong>：基準Aから平均律。鍵盤楽器・電子楽器と合わせる標準。</p>
+      <p><strong>弦楽合奏</strong>：基準Aから5度を-2¢狭めた連鎖。純正長3度を優先する折衷調弦。</p>
+      <p><strong>カスタム Hz</strong>：主音の絶対周波数を直接指定。任意の基音上に純正律などで音程を積める。</p>
+    </section>
+
+    <section class="info-section">
+      <h3>音律について</h3>
+      <p><strong>平均律</strong>：1オクターブを12等分。すべての協和音がわずかに濁るが、どの調に移っても同じ響き。</p>
+      <p><strong>ピタゴラス</strong>：主音から純5度(3:2)の連鎖。5度・4度は澄むが、長3度(81:64)は+7.8¢広い。旋律向け。</p>
+      <p><strong>純正律</strong>：3度 5:4, 5度 3:2, 6度 5:3 の整数比。長3度が-13.7¢低く、和音のハモリ密度が段違い。合奏・コード練習の相棒。</p>
+    </section>
+
+    <p class="info-footer">本家: <a href="https://ngmt4amtk-web.github.io/jawari-web/">ドローンサウンド</a></p>
+  </div>
+</div>
+
+<!-- ============================================= -->
+<!-- KEY PICKER SHEET (tonic pitch class)           -->
+<!-- ============================================= -->
+<div class="sheet" id="sheet-key" hidden>
+  <div class="sheet-head">
+    <h2>主音を選ぶ</h2>
+    <button class="icon-btn close-btn" data-close="sheet-key" aria-label="閉じる">&times;</button>
+  </div>
+  <div class="sheet-body">
+    <div class="chip-row chip-row-wrap chip-row-big" id="key-pc-chips"></div>
+    <div class="field">
+      <span class="field-sublabel">スケール</span>
+      <div class="chip-row" id="key-scale-chips">
+        <button class="chip" data-scale="major">長調</button>
+        <button class="chip" data-scale="naturalMinor">短調(自然)</button>
+        <button class="chip" data-scale="harmonicMinor">短調(和声)</button>
+      </div>
+    </div>
   </div>
 </div>
 
