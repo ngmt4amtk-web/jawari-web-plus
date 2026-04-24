@@ -509,24 +509,45 @@ normalizeTimeSig();
 const engine = new DroneEngine();
 const progression = new Progression(engine, onProgressionStatus, onProgressionBar);
 
-function configuration() {
-  return {
+// 小節レベルの override を解決するユーティリティ
+// 自分の小節から遡って最初に見つかる keyChange を採用。
+// 何も無ければグローバル (state.tonicPitchClass / state.scaleForm)
+function effectiveKeyAt(barIdx) {
+  const bars = state.progression.bars;
+  for (let i = Math.min(barIdx, bars.length - 1); i >= 0; i--) {
+    const kc = bars[i] && bars[i].keyChange;
+    if (kc) return { tonicPitchClass: kc.tonicPitchClass, scaleForm: kc.scaleForm };
+  }
+  return { tonicPitchClass: state.tonicPitchClass, scaleForm: state.scaleForm };
+}
+
+function effectiveChordPresetOfBar(bar) {
+  return (bar && bar.chordPreset) ? bar.chordPreset : state.chordPreset;
+}
+
+function configuration(barIdx = null) {
+  const bar = (barIdx !== null) ? state.progression.bars[barIdx] : null;
+  const key = (barIdx !== null) ? effectiveKeyAt(barIdx) : {
     tonicPitchClass: state.tonicPitchClass,
-    scaleForm: state.scaleForm,
+    scaleForm: state.scaleForm
+  };
+  return {
+    tonicPitchClass: key.tonicPitchClass,
+    scaleForm: key.scaleForm,
     droneScaleDegree: state.droneScaleDegree,
     tonicTuning: state.tonicTuning,
     tuningSystem: state.tuningSystem,
     referenceA: state.referenceA,
     customTonicHz: state.customTonicHz,
-    chordPreset: state.chordPreset,
+    chordPreset: effectiveChordPresetOfBar(bar),
     quality: state.quality,
     timbre: state.timbre,
     volume: state.volume
   };
 }
 
-function pushConfigToEngine() {
-  engine.updateConfiguration(configuration());
+function pushConfigToEngine(barIdx = null) {
+  engine.updateConfiguration(configuration(barIdx));
 }
 
 function onConfigChanged() {
@@ -582,7 +603,20 @@ const el = {
   chordChipsExtra: $("#chord-chips-extra"),
   timbreChips: $("#timbre-chips"),
   accentFirstBeat: $("#accent-first-beat"),
+
+  // bar edit sheet
+  barEditTitle: $("#bar-edit-title"),
+  barEditDegreeChips: $("#bar-edit-degree-chips"),
+  barEditQualityChips: $("#bar-edit-quality-chips"),
+  barEditChordChips: $("#bar-edit-chord-chips"),
+  barEditKeyEnabled: $("#bar-edit-key-enabled"),
+  barEditKeyFields: $("#bar-edit-key-fields"),
+  barEditTonicChips: $("#bar-edit-tonic-chips"),
+  barEditScaleChips: $("#bar-edit-scale-chips"),
+  barEditDelete: $("#bar-edit-delete"),
 };
+
+let editingBarIdx = -1;
 
 // ========================================
 // BPM + Tempo marker
@@ -744,26 +778,33 @@ let currentProgressionBarIdx = 0;
 
 function renderBarsEditor() {
   el.barsList.innerHTML = "";
-  const degLabels = SCALE_FORMS[state.scaleForm].degrees;
-  const scalePattern = SCALE_FORMS[state.scaleForm].pattern;
 
   state.progression.bars.forEach((bar, idx) => {
+    // Per-bar effective key (walks back for keyChange, else global)
+    const key = effectiveKeyAt(idx);
+    const scalePattern = SCALE_FORMS[key.scaleForm].pattern;
+    const degLabels = SCALE_FORMS[key.scaleForm].degrees;
+
     const row = document.createElement("div");
     row.className = "bar-row" +
       (progression.running && idx === currentProgressionBarIdx ? " active" : "");
 
+    // Inner layout: index, degree, quality, badges, more, remove
     const idxCell = document.createElement("span");
     idxCell.className = "bar-idx";
     idxCell.textContent = (idx + 1);
     row.appendChild(idxCell);
 
-    // Degree chip wrapping a hidden native select (taps open native picker)
+    // Meta column: degree chip + optional badges underneath
+    const meta = document.createElement("div");
+    meta.className = "bar-row-meta";
+
     const degWrap = document.createElement("div");
     degWrap.className = "degree-wrap";
 
     const chip = document.createElement("div");
     chip.className = "bar-degree-chip";
-    const pcIdx = mod12(state.tonicPitchClass + scalePattern[bar.degree]);
+    const pcIdx = mod12(key.tonicPitchClass + scalePattern[bar.degree]);
     chip.innerHTML = `
       <span class="deg-roman">${degLabels[bar.degree]}</span>
       <span class="deg-pitch">${PITCH_CLASSES[pcIdx].name}</span>
@@ -775,7 +816,7 @@ function renderBarsEditor() {
     degLabels.forEach((lab, di) => {
       const opt = document.createElement("option");
       opt.value = di;
-      const p = mod12(state.tonicPitchClass + scalePattern[di]);
+      const p = mod12(key.tonicPitchClass + scalePattern[di]);
       opt.textContent = `${lab}  (${PITCH_CLASSES[p].name})`;
       if (di === bar.degree) opt.selected = true;
       sel.appendChild(opt);
@@ -783,13 +824,32 @@ function renderBarsEditor() {
     sel.addEventListener("change", (e) => {
       bar.degree = Number(e.target.value);
       if (state.syncQualityWithScale) {
-        bar.quality = defaultQualityForDegree(state.scaleForm, bar.degree);
+        const k = effectiveKeyAt(idx);
+        bar.quality = defaultQualityForDegree(k.scaleForm, bar.degree);
       }
       renderBarsEditor();
       saveState();
     });
     degWrap.appendChild(sel);
-    row.appendChild(degWrap);
+    meta.appendChild(degWrap);
+
+    // Badges for chord override + key change (if any)
+    const badges = [];
+    if (bar.chordPreset && CHORD_PRESETS[bar.chordPreset]) {
+      badges.push(`<span class="bar-badge chord">${CHORD_PRESETS[bar.chordPreset].label}</span>`);
+    }
+    if (bar.keyChange) {
+      const kcName = PITCH_CLASSES[bar.keyChange.tonicPitchClass].name;
+      const kcScale = SCALE_FORMS[bar.keyChange.scaleForm].label;
+      badges.push(`<span class="bar-badge modulation">→ ${kcName} ${kcScale}</span>`);
+    }
+    if (badges.length > 0) {
+      const badgeWrap = document.createElement("div");
+      badgeWrap.className = "bar-badges";
+      badgeWrap.innerHTML = badges.join("");
+      meta.appendChild(badgeWrap);
+    }
+    row.appendChild(meta);
 
     // Major / minor toggle
     const qt = document.createElement("div");
@@ -807,6 +867,14 @@ function renderBarsEditor() {
       qt.appendChild(btn);
     });
     row.appendChild(qt);
+
+    // More (advanced per-bar settings)
+    const more = document.createElement("button");
+    more.className = "bar-more";
+    more.textContent = "⋯";
+    more.setAttribute("aria-label", `${idx + 1}小節目の詳細設定`);
+    more.addEventListener("click", () => openBarEditSheet(idx));
+    row.appendChild(more);
 
     // Remove
     const rm = document.createElement("button");
@@ -881,10 +949,9 @@ function onProgressionBar(ev) {
     currentProgressionBarIdx = ev.barIdx;
     const bar = state.progression.bars[ev.barIdx];
     if (!bar) return;
-    state.syncQualityWithScale = false;
     state.droneScaleDegree = bar.degree;
     state.quality = bar.quality;
-    pushConfigToEngine();
+    pushConfigToEngine(ev.barIdx);
     renderBarsEditor();
   } else if (ev.phase === "countin") {
     // count-in 中は drone config だけ bar 0 にセットしておく（音は鳴らない）
@@ -892,7 +959,7 @@ function onProgressionBar(ev) {
     if (!bar) return;
     state.droneScaleDegree = bar.degree;
     state.quality = bar.quality;
-    pushConfigToEngine();
+    pushConfigToEngine(0);
   }
 }
 
@@ -911,7 +978,7 @@ el.volume.value = Math.round(state.volume * 100);
 // Sheets
 // ========================================
 
-const allSheets = ["sheet-settings", "sheet-info"];
+const allSheets = ["sheet-settings", "sheet-info", "sheet-bar-edit"];
 
 function openSheet(id) {
   allSheets.forEach(s => { const e = $("#" + s); if (e) e.hidden = s !== id; });
@@ -1047,6 +1114,162 @@ el.timbreChips.querySelectorAll(".chip").forEach(c => {
 el.accentFirstBeat.addEventListener("change", (e) => {
   state.progression.accentFirstBeat = e.target.checked;
   saveState();
+});
+
+// ========================================
+// Bar edit sheet
+// ========================================
+
+function openBarEditSheet(barIdx) {
+  editingBarIdx = barIdx;
+  const bar = state.progression.bars[barIdx];
+  if (!bar) return;
+  const key = effectiveKeyAt(barIdx);
+  const titleKey = `${PITCH_CLASSES[key.tonicPitchClass].name} ${SCALE_FORMS[key.scaleForm].label}`;
+  el.barEditTitle.textContent = `小節 ${barIdx + 1} の設定 · ${titleKey}`;
+
+  renderBarEditDegreeChips();
+  setActiveChip(el.barEditQualityChips, "barQ", bar.quality);
+  setActiveChip(el.barEditChordChips, "barChord", bar.chordPreset || "");
+
+  el.barEditKeyEnabled.checked = !!bar.keyChange;
+  el.barEditKeyFields.hidden = !bar.keyChange;
+  renderBarEditTonicChips();
+  setActiveChip(el.barEditScaleChips, "barScale",
+    bar.keyChange ? bar.keyChange.scaleForm : "");
+
+  openSheet("sheet-bar-edit");
+}
+
+function renderBarEditDegreeChips() {
+  const bar = state.progression.bars[editingBarIdx];
+  const key = effectiveKeyAt(editingBarIdx);
+  const degLabels = SCALE_FORMS[key.scaleForm].degrees;
+  const pattern = SCALE_FORMS[key.scaleForm].pattern;
+  el.barEditDegreeChips.innerHTML = "";
+  degLabels.forEach((lab, di) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (bar.degree === di ? " active" : "");
+    const p = mod12(key.tonicPitchClass + pattern[di]);
+    b.innerHTML = `<span style="color:var(--gold);font-weight:800">${lab}</span> <small style="opacity:0.7;margin-left:4px">${PITCH_CLASSES[p].name}</small>`;
+    b.addEventListener("click", () => {
+      bar.degree = di;
+      if (state.syncQualityWithScale) {
+        const k = effectiveKeyAt(editingBarIdx);
+        bar.quality = defaultQualityForDegree(k.scaleForm, bar.degree);
+        setActiveChip(el.barEditQualityChips, "barQ", bar.quality);
+      }
+      renderBarEditDegreeChips();
+      renderBarsEditor();
+      saveState();
+    });
+    el.barEditDegreeChips.appendChild(b);
+  });
+}
+
+function renderBarEditTonicChips() {
+  const bar = state.progression.bars[editingBarIdx];
+  const currentPc = bar.keyChange ? bar.keyChange.tonicPitchClass : null;
+  el.barEditTonicChips.innerHTML = "";
+  PITCH_CLASSES.forEach(pc => {
+    const b = document.createElement("button");
+    b.className = "chip" + (currentPc === pc.id ? " active" : "");
+    b.textContent = pc.name;
+    b.addEventListener("click", () => {
+      if (!bar.keyChange) bar.keyChange = { tonicPitchClass: pc.id, scaleForm: "major" };
+      else bar.keyChange.tonicPitchClass = pc.id;
+      renderBarEditTonicChips();
+      setActiveChip(el.barEditScaleChips, "barScale", bar.keyChange.scaleForm);
+      el.barEditKeyEnabled.checked = true;
+      el.barEditKeyFields.hidden = false;
+      renderBarsEditor();
+      saveState();
+    });
+    el.barEditTonicChips.appendChild(b);
+  });
+}
+
+// Quality chips
+el.barEditQualityChips.querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => {
+    const bar = state.progression.bars[editingBarIdx];
+    if (!bar) return;
+    bar.quality = c.dataset.barQ;
+    setActiveChip(el.barEditQualityChips, "barQ", bar.quality);
+    renderBarsEditor();
+    saveState();
+  });
+});
+
+// Chord override chips
+el.barEditChordChips.querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => {
+    const bar = state.progression.bars[editingBarIdx];
+    if (!bar) return;
+    const v = c.dataset.barChord;
+    bar.chordPreset = v === "" ? null : v;
+    setActiveChip(el.barEditChordChips, "barChord", v);
+    renderBarsEditor();
+    saveState();
+  });
+});
+
+// Key change enable toggle
+el.barEditKeyEnabled.addEventListener("change", (e) => {
+  const bar = state.progression.bars[editingBarIdx];
+  if (!bar) return;
+  if (e.target.checked) {
+    if (!bar.keyChange) {
+      // Default to current effective key so user can edit from there
+      const k = effectiveKeyAt(editingBarIdx);
+      bar.keyChange = { tonicPitchClass: k.tonicPitchClass, scaleForm: k.scaleForm };
+    }
+    el.barEditKeyFields.hidden = false;
+    renderBarEditTonicChips();
+    setActiveChip(el.barEditScaleChips, "barScale", bar.keyChange.scaleForm);
+  } else {
+    bar.keyChange = null;
+    el.barEditKeyFields.hidden = true;
+  }
+  renderBarsEditor();
+  // Re-render bar-edit internals because effective key may have changed
+  renderBarEditDegreeChips();
+  saveState();
+});
+
+// Key scale chips
+el.barEditScaleChips.querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => {
+    const bar = state.progression.bars[editingBarIdx];
+    if (!bar) return;
+    if (!bar.keyChange) {
+      const k = effectiveKeyAt(editingBarIdx);
+      bar.keyChange = { tonicPitchClass: k.tonicPitchClass, scaleForm: c.dataset.barScale };
+    } else {
+      bar.keyChange.scaleForm = c.dataset.barScale;
+    }
+    // Clamp this bar's degree if new scale has fewer steps (it doesn't — all 7 — but safe)
+    const maxDeg = SCALE_FORMS[bar.keyChange.scaleForm].pattern.length - 1;
+    if (bar.degree > maxDeg) bar.degree = 0;
+    setActiveChip(el.barEditScaleChips, "barScale", bar.keyChange.scaleForm);
+    el.barEditKeyEnabled.checked = true;
+    el.barEditKeyFields.hidden = false;
+    renderBarEditDegreeChips();  // effective key changed for this bar
+    renderBarsEditor();
+    saveState();
+  });
+});
+
+// Delete bar
+el.barEditDelete.addEventListener("click", () => {
+  if (state.progression.bars.length <= 1) {
+    closeAllSheets();
+    return;
+  }
+  state.progression.bars.splice(editingBarIdx, 1);
+  renderBarsEditor();
+  saveState();
+  closeAllSheets();
 });
 
 // ========================================

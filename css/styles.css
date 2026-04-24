@@ -494,6 +494,70 @@ input[type="range"] { accent-color: var(--gold); }
   cursor: default;
 }
 
+.bar-more {
+  color: var(--text-dim);
+  padding: 8px 6px;
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}
+.bar-more:active { color: var(--gold); }
+
+.bar-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.bar-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.bar-badge.chord {
+  color: var(--gold);
+  background: rgba(237, 185, 89, 0.1);
+  border: 1px solid rgba(237, 185, 89, 0.4);
+}
+.bar-badge.modulation {
+  color: var(--teal);
+  background: rgba(112, 199, 166, 0.1);
+  border: 1px solid rgba(112, 199, 166, 0.4);
+}
+
+.bar-row-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.bar-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.danger-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin-top: 20px;
+  color: var(--red);
+  background: rgba(240, 99, 99, 0.08);
+  border: 1px solid rgba(240, 99, 99, 0.4);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.danger-btn:active { background: rgba(240, 99, 99, 0.2); }
+
 /* ============ TRANSPORT ============ */
 .transport-section {
   display: flex;

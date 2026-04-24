@@ -285,6 +285,82 @@
   </div>
 </div>
 
+<!-- ============================================= -->
+<!-- BAR EDIT SHEET (per-bar chord + modulation)   -->
+<!-- ============================================= -->
+<div class="sheet" id="sheet-bar-edit" hidden>
+  <div class="sheet-head">
+    <h2 id="bar-edit-title">小節の設定</h2>
+    <button class="icon-btn close-btn" data-close="sheet-bar-edit" aria-label="閉じる">&times;</button>
+  </div>
+  <div class="sheet-body">
+
+    <section class="settings-section">
+      <h3 class="settings-heading">この小節の度数・三度</h3>
+      <div class="field">
+        <span class="field-sublabel">度数</span>
+        <div class="chip-row chip-row-wrap" id="bar-edit-degree-chips"></div>
+      </div>
+      <div class="field">
+        <span class="field-sublabel">三度</span>
+        <div class="chip-row" id="bar-edit-quality-chips">
+          <button class="chip" data-bar-q="major">Major</button>
+          <button class="chip" data-bar-q="minor">minor</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">この小節だけの和音</h3>
+      <div class="chip-row chip-row-wrap" id="bar-edit-chord-chips">
+        <button class="chip active" data-bar-chord="">グローバル</button>
+        <button class="chip" data-bar-chord="root">単音</button>
+        <button class="chip" data-bar-chord="rootFifth">1+5</button>
+        <button class="chip" data-bar-chord="rootOctave">1+8</button>
+        <button class="chip" data-bar-chord="rootFifthOctave">1+5+8</button>
+        <button class="chip" data-bar-chord="triad">三和音</button>
+        <button class="chip" data-bar-chord="triadOctave">三和音+8</button>
+        <button class="chip" data-bar-chord="sus2">sus2</button>
+        <button class="chip" data-bar-chord="sus4">sus4</button>
+        <button class="chip" data-bar-chord="seventh">7</button>
+        <button class="chip" data-bar-chord="maj7">Maj7</button>
+        <button class="chip" data-bar-chord="halfDim7">m7♭5</button>
+        <button class="chip" data-bar-chord="diminishedSeventh">dim7</button>
+        <button class="chip" data-bar-chord="add6">add6</button>
+        <button class="chip" data-bar-chord="add9">add9</button>
+        <button class="chip" data-bar-chord="diminished">dim</button>
+        <button class="chip" data-bar-chord="augmented">aug</button>
+      </div>
+      <small class="settings-hint">「グローバル」= 設定シートで選んだ和音をそのまま使う。他を選ぶとこの小節だけ上書き。</small>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">この小節から転調</h3>
+      <label class="check-row">
+        <input type="checkbox" id="bar-edit-key-enabled">
+        <span>ここから別の調に切り替える</span>
+      </label>
+      <div id="bar-edit-key-fields" hidden>
+        <div class="field">
+          <span class="field-sublabel">主音</span>
+          <div class="chip-row chip-row-wrap" id="bar-edit-tonic-chips"></div>
+        </div>
+        <div class="field">
+          <span class="field-sublabel">スケール</span>
+          <div class="chip-row" id="bar-edit-scale-chips">
+            <button class="chip" data-bar-scale="major">長調</button>
+            <button class="chip" data-bar-scale="naturalMinor">短調(自然)</button>
+            <button class="chip" data-bar-scale="harmonicMinor">短調(和声)</button>
+          </div>
+        </div>
+      </div>
+      <small class="settings-hint">この小節以降、次の転調指定まで新しい調の度数・音で表示・再生されます。</small>
+    </section>
+
+    <button class="danger-btn" id="bar-edit-delete">この小節を削除</button>
+  </div>
+</div>
+
 <div class="backdrop" id="backdrop" hidden></div>
 
 <script src="js/app.js" type="module"></script>
