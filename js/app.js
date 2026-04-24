@@ -37,13 +37,31 @@ const TONIC_TUNING_HINTS = {
   customHz: "主音の絶対周波数をHzで直接指定。指定Hzがⅰ度(主音)として、そこから音律で音程を積む。"
 };
 
+// includesThird: true → 長調/短調の切替で M3/m3 が切り替わる (quality-sensitive)
+// 固定インターバル (sus / dim / aug) は quality 無視
 const CHORD_PRESETS = {
-  root:             { label: "単音",       includesThird: false, intervals: (_q) => [0] },
-  rootFifth:        { label: "1 + 5",      includesThird: false, intervals: (_q) => [0, 7] },
-  rootOctave:       { label: "1 + 8",      includesThird: false, intervals: (_q) => [0, 12] },
-  rootFifthOctave:  { label: "1 + 5 + 8",  includesThird: false, intervals: (_q) => [0, 7, 12] },
-  triad:            { label: "1 + 3 + 5",  includesThird: true,  intervals: (q) => [0, q === "major" ? 4 : 3, 7] },
-  triadOctave:      { label: "1 + 3 + 5 + 8", includesThird: true, intervals: (q) => [0, q === "major" ? 4 : 3, 7, 12] }
+  // 単音・完全系
+  root:             { label: "単音",         includesThird: false, intervals: (_q) => [0] },
+  rootFifth:        { label: "1+5",         includesThird: false, intervals: (_q) => [0, 7] },
+  rootOctave:       { label: "1+8",         includesThird: false, intervals: (_q) => [0, 12] },
+  rootFifthOctave:  { label: "1+5+8",       includesThird: false, intervals: (_q) => [0, 7, 12] },
+  // 三和音系
+  triad:            { label: "三和音",       includesThird: true,  intervals: (q) => [0, q === "major" ? 4 : 3, 7] },
+  triadOctave:      { label: "三和音+8",     includesThird: true,  intervals: (q) => [0, q === "major" ? 4 : 3, 7, 12] },
+  sus2:             { label: "sus2",        includesThird: false, intervals: (_q) => [0, 2, 7] },
+  sus4:             { label: "sus4",        includesThird: false, intervals: (_q) => [0, 5, 7] },
+  // 7th 系
+  // seventh = 常に♭7 (長調で V7 型 / 短調で m7 型)
+  seventh:          { label: "7",           includesThird: true,  intervals: (q) => [0, q === "major" ? 4 : 3, 7, 10] },
+  // maj7 = 常に自然7 (長調で Maj7 / 短調で m(maj7))
+  maj7:             { label: "Maj7",        includesThird: true,  intervals: (q) => [0, q === "major" ? 4 : 3, 7, 11] },
+  halfDim7:         { label: "m7♭5",        includesThird: false, intervals: (_q) => [0, 3, 6, 10] },
+  diminishedSeventh:{ label: "dim7",        includesThird: false, intervals: (_q) => [0, 3, 6, 9] },
+  // 拡張・特殊
+  add6:             { label: "add6",        includesThird: true,  intervals: (q) => [0, q === "major" ? 4 : 3, 7, 9] },
+  add9:             { label: "add9",        includesThird: true,  intervals: (q) => [0, q === "major" ? 4 : 3, 7, 14] },
+  diminished:       { label: "dim",         includesThird: false, intervals: (_q) => [0, 3, 6] },
+  augmented:        { label: "aug",         includesThird: false, intervals: (_q) => [0, 4, 8] }
 };
 
 const TIMBRES = {
@@ -514,7 +532,6 @@ function pushConfigToEngine() {
 function onConfigChanged() {
   pushConfigToEngine();
   saveState();
-  renderKeyLabel();
   renderBarsEditor();
 }
 
@@ -544,13 +561,13 @@ const el = {
   volume: $("#volume"),
   btnSettings: $("#btn-settings"),
   btnInfo: $("#btn-info"),
-  btnKey: $("#btn-key"),
-  keyLabel: $("#key-label"),
   backdrop: $("#backdrop"),
 
+  // inline key (main screen)
+  tonicPcChips: $("#tonic-pc-chips"),
+  scaleMainChips: $("#scale-main-chips"),
+
   // settings sheet
-  tonicPc: $("#tonic-pc"),
-  scaleChips: $("#scale-chips"),
   syncQuality: $("#sync-quality"),
   tuningChips: $("#tuning-chips"),
   tuningHint: $("#tuning-hint"),
@@ -559,13 +576,12 @@ const el = {
   customHzField: $("#custom-hz-field"),
   customHz: $("#custom-hz"),
   referenceA: $("#reference-a"),
-  chordChips: $("#chord-chips"),
+  chordChipsBasic: $("#chord-chips-basic"),
+  chordChipsTriad: $("#chord-chips-triad"),
+  chordChipsSeventh: $("#chord-chips-seventh"),
+  chordChipsExtra: $("#chord-chips-extra"),
   timbreChips: $("#timbre-chips"),
   accentFirstBeat: $("#accent-first-beat"),
-
-  // key sheet
-  keyPcChips: $("#key-pc-chips"),
-  keyScaleChips: $("#key-scale-chips"),
 };
 
 // ========================================
@@ -892,19 +908,10 @@ el.volume.addEventListener("input", (e) => {
 el.volume.value = Math.round(state.volume * 100);
 
 // ========================================
-// Key label (top bar)
-// ========================================
-
-function renderKeyLabel() {
-  el.keyLabel.textContent =
-    `${PITCH_CLASSES[state.tonicPitchClass].name} ${SCALE_FORMS[state.scaleForm].label}`;
-}
-
-// ========================================
 // Sheets
 // ========================================
 
-const allSheets = ["sheet-settings", "sheet-info", "sheet-key"];
+const allSheets = ["sheet-settings", "sheet-info"];
 
 function openSheet(id) {
   allSheets.forEach(s => { const e = $("#" + s); if (e) e.hidden = s !== id; });
@@ -921,43 +928,47 @@ $$(".close-btn").forEach(b => b.addEventListener("click", closeAllSheets));
 
 el.btnSettings.addEventListener("click", () => openSheet("sheet-settings"));
 el.btnInfo.addEventListener("click", () => openSheet("sheet-info"));
-el.btnKey.addEventListener("click", () => openSheet("sheet-key"));
+
+// ========================================
+// Inline key chips (main screen)
+// ========================================
+
+function renderTonicPcChips() {
+  el.tonicPcChips.innerHTML = "";
+  PITCH_CLASSES.forEach(pc => {
+    const b = document.createElement("button");
+    b.className = "chip" + (pc.id === state.tonicPitchClass ? " active" : "");
+    b.textContent = pc.name;
+    b.addEventListener("click", () => {
+      state.tonicPitchClass = pc.id;
+      renderTonicPcChips();
+      onConfigChanged();
+    });
+    el.tonicPcChips.appendChild(b);
+  });
+}
+
+function handleScaleChange(newScale) {
+  state.scaleForm = newScale;
+  const maxDeg = SCALE_FORMS[state.scaleForm].pattern.length - 1;
+  state.progression.bars.forEach(b => {
+    if (b.degree > maxDeg) b.degree = 0;
+    if (state.syncQualityWithScale) {
+      b.quality = defaultQualityForDegree(state.scaleForm, b.degree);
+    }
+  });
+  if (state.droneScaleDegree > maxDeg) state.droneScaleDegree = 0;
+  setActiveChip(el.scaleMainChips, "scale", state.scaleForm);
+  onConfigChanged();
+}
+
+el.scaleMainChips.querySelectorAll(".chip").forEach(c => {
+  c.addEventListener("click", () => handleScaleChange(c.dataset.scale));
+});
 
 // ========================================
 // Settings sheet wiring
 // ========================================
-
-// Tonic pitch class (settings) — dropdown
-PITCH_CLASSES.forEach(pc => {
-  const opt = document.createElement("option");
-  opt.value = pc.id;
-  opt.textContent = pc.name;
-  el.tonicPc.appendChild(opt);
-});
-el.tonicPc.addEventListener("change", (e) => {
-  state.tonicPitchClass = Number(e.target.value);
-  onConfigChanged();
-  renderKeyPcChips();
-});
-
-// Scale chips
-el.scaleChips.querySelectorAll(".chip").forEach(c => {
-  c.addEventListener("click", () => {
-    state.scaleForm = c.dataset.scale;
-    // Clamp degrees
-    const maxDeg = SCALE_FORMS[state.scaleForm].pattern.length - 1;
-    state.progression.bars.forEach(b => {
-      if (b.degree > maxDeg) b.degree = 0;
-      if (state.syncQualityWithScale) {
-        b.quality = defaultQualityForDegree(state.scaleForm, b.degree);
-      }
-    });
-    if (state.droneScaleDegree > maxDeg) state.droneScaleDegree = 0;
-    setActiveChip(el.scaleChips, "scale", state.scaleForm);
-    setActiveChip(el.keyScaleChips, "scale", state.scaleForm);
-    onConfigChanged();
-  });
-});
 
 // Sync quality toggle
 el.syncQuality.addEventListener("change", (e) => {
@@ -1003,12 +1014,23 @@ el.referenceA.addEventListener("change", (e) => {
   onConfigChanged();
 });
 
-// Chord preset chips
-el.chordChips.querySelectorAll(".chip").forEach(c => {
-  c.addEventListener("click", () => {
-    state.chordPreset = c.dataset.chord;
-    setActiveChip(el.chordChips, "chord", state.chordPreset);
-    onConfigChanged();
+// Chord preset chips (4 groups)
+const chordChipGroups = [
+  el.chordChipsBasic,
+  el.chordChipsTriad,
+  el.chordChipsSeventh,
+  el.chordChipsExtra
+];
+function setActiveChordChip() {
+  chordChipGroups.forEach(g => setActiveChip(g, "chord", state.chordPreset));
+}
+chordChipGroups.forEach(group => {
+  group.querySelectorAll(".chip").forEach(c => {
+    c.addEventListener("click", () => {
+      state.chordPreset = c.dataset.chord;
+      setActiveChordChip();
+      onConfigChanged();
+    });
   });
 });
 
@@ -1028,58 +1050,20 @@ el.accentFirstBeat.addEventListener("change", (e) => {
 });
 
 // ========================================
-// Key sheet wiring
-// ========================================
-
-function renderKeyPcChips() {
-  el.keyPcChips.innerHTML = "";
-  PITCH_CLASSES.forEach(pc => {
-    const b = document.createElement("button");
-    b.className = "chip" + (pc.id === state.tonicPitchClass ? " active" : "");
-    b.textContent = pc.name;
-    b.addEventListener("click", () => {
-      state.tonicPitchClass = pc.id;
-      el.tonicPc.value = pc.id;
-      renderKeyPcChips();
-      onConfigChanged();
-    });
-    el.keyPcChips.appendChild(b);
-  });
-}
-
-el.keyScaleChips.querySelectorAll(".chip").forEach(c => {
-  c.addEventListener("click", () => {
-    state.scaleForm = c.dataset.scale;
-    const maxDeg = SCALE_FORMS[state.scaleForm].pattern.length - 1;
-    state.progression.bars.forEach(b => {
-      if (b.degree > maxDeg) b.degree = 0;
-      if (state.syncQualityWithScale) {
-        b.quality = defaultQualityForDegree(state.scaleForm, b.degree);
-      }
-    });
-    if (state.droneScaleDegree > maxDeg) state.droneScaleDegree = 0;
-    setActiveChip(el.scaleChips, "scale", state.scaleForm);
-    setActiveChip(el.keyScaleChips, "scale", state.scaleForm);
-    onConfigChanged();
-  });
-});
-
-// ========================================
 // Initial render
 // ========================================
 
 function renderAll() {
   updateBpmUI();
+  renderTonicPcChips();
+  setActiveChip(el.scaleMainChips, "scale", state.scaleForm);
   renderTimeSigChips();
   renderCountInChips();
   renderBeatDots();
   renderBarsEditor();
-  renderKeyLabel();
   updateTransportButton();
 
   // settings sheet initial state
-  el.tonicPc.value = state.tonicPitchClass;
-  setActiveChip(el.scaleChips, "scale", state.scaleForm);
   el.syncQuality.checked = state.syncQualityWithScale;
   setActiveChip(el.tuningChips, "tuning", state.tuningSystem);
   el.tuningHint.textContent = TUNING_HINTS[state.tuningSystem] || "";
@@ -1088,11 +1072,9 @@ function renderAll() {
   el.customHzField.hidden = state.tonicTuning !== "customHz";
   el.customHz.value = state.customTonicHz;
   el.referenceA.value = state.referenceA;
-  setActiveChip(el.chordChips, "chord", state.chordPreset);
+  setActiveChordChip();
   setActiveChip(el.timbreChips, "timbre", state.timbre);
   el.accentFirstBeat.checked = state.progression.accentFirstBeat;
-  setActiveChip(el.keyScaleChips, "scale", state.scaleForm);
-  renderKeyPcChips();
 }
 
 requestAnimationFrame(renderAll);

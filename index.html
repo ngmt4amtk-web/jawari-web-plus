@@ -12,7 +12,7 @@
 
 <main class="view-metro" id="view-metro">
 
-  <!-- Top bar: settings / key / info -->
+  <!-- Top bar: settings | brand | info -->
   <header class="top-bar">
     <button class="icon-btn" id="btn-settings" aria-label="設定">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -21,10 +21,7 @@
       </svg>
     </button>
 
-    <button class="key-display" id="btn-key">
-      <span id="key-label">A 長調</span>
-      <svg viewBox="0 0 10 6" width="8" height="5" fill="currentColor"><path d="M0 0 L5 6 L10 0 Z"/></svg>
-    </button>
+    <div class="brand">ドローンサウンド <span>Plus</span></div>
 
     <button class="icon-btn" id="btn-info" aria-label="使い方">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -59,6 +56,22 @@
     </button>
 
     <input type="number" id="bpm-input" class="bpm-input-hidden" min="20" max="300" step="1" inputmode="numeric" />
+  </section>
+
+  <!-- Key (tonic + scale) — inline, directly above 拍子 -->
+  <section class="field-block key-block">
+    <div class="key-sub">
+      <h3 class="field-label">主音</h3>
+      <div class="chip-row chip-row-wrap" id="tonic-pc-chips"></div>
+    </div>
+    <div class="key-sub">
+      <h3 class="field-label">スケール</h3>
+      <div class="chip-row" id="scale-main-chips">
+        <button class="chip" data-scale="major">長調</button>
+        <button class="chip" data-scale="naturalMinor">短調(自然)</button>
+        <button class="chip" data-scale="harmonicMinor">短調(和声)</button>
+      </div>
+    </div>
   </section>
 
   <!-- Time signature -->
@@ -127,23 +140,12 @@
   <div class="sheet-body">
 
     <section class="settings-section">
-      <h3 class="settings-heading">調（主音 × スケール）</h3>
-      <div class="field">
-        <span class="field-sublabel">主音</span>
-        <select id="tonic-pc"></select>
-      </div>
-      <div class="field">
-        <span class="field-sublabel">スケール</span>
-        <div class="chip-row" id="scale-chips">
-          <button class="chip" data-scale="major">長調</button>
-          <button class="chip" data-scale="naturalMinor">短調(自然)</button>
-          <button class="chip" data-scale="harmonicMinor">短調(和声)</button>
-        </div>
-      </div>
+      <h3 class="settings-heading">調の自動切替</h3>
       <label class="check-row">
         <input type="checkbox" id="sync-quality" />
         <span>度数に合わせて三度を自動切替</span>
       </label>
+      <small class="settings-hint">小節ごとの M/m を、主音スケールでの自然な三度（長調のⅡ,Ⅲ,Ⅵは minor 等）に自動で合わせます。手動で M/m を切り替えたい場合は OFF に。</small>
     </section>
 
     <section class="settings-section">
@@ -182,14 +184,43 @@
 
     <section class="settings-section">
       <h3 class="settings-heading">ドローンの和音構成</h3>
-      <div class="chip-row chip-row-wrap" id="chord-chips">
-        <button class="chip" data-chord="root">単音</button>
-        <button class="chip" data-chord="rootFifth">1+5</button>
-        <button class="chip" data-chord="rootOctave">1+8</button>
-        <button class="chip" data-chord="rootFifthOctave">1+5+8</button>
-        <button class="chip" data-chord="triad">1+3+5</button>
-        <button class="chip" data-chord="triadOctave">1+3+5+8</button>
+      <div class="chord-group">
+        <span class="chord-group-label">単音・完全系</span>
+        <div class="chip-row chip-row-wrap" id="chord-chips-basic">
+          <button class="chip" data-chord="root">単音</button>
+          <button class="chip" data-chord="rootFifth">1+5</button>
+          <button class="chip" data-chord="rootOctave">1+8</button>
+          <button class="chip" data-chord="rootFifthOctave">1+5+8</button>
+        </div>
       </div>
+      <div class="chord-group">
+        <span class="chord-group-label">三和音系</span>
+        <div class="chip-row chip-row-wrap" id="chord-chips-triad">
+          <button class="chip" data-chord="triad">三和音</button>
+          <button class="chip" data-chord="triadOctave">三和音+8</button>
+          <button class="chip" data-chord="sus2">sus2</button>
+          <button class="chip" data-chord="sus4">sus4</button>
+        </div>
+      </div>
+      <div class="chord-group">
+        <span class="chord-group-label">7th 系</span>
+        <div class="chip-row chip-row-wrap" id="chord-chips-seventh">
+          <button class="chip" data-chord="seventh">7 <small>(V7/m7)</small></button>
+          <button class="chip" data-chord="maj7">Maj7</button>
+          <button class="chip" data-chord="halfDim7">m7♭5</button>
+          <button class="chip" data-chord="diminishedSeventh">dim7</button>
+        </div>
+      </div>
+      <div class="chord-group">
+        <span class="chord-group-label">拡張・特殊</span>
+        <div class="chip-row chip-row-wrap" id="chord-chips-extra">
+          <button class="chip" data-chord="add6">add6</button>
+          <button class="chip" data-chord="add9">add9</button>
+          <button class="chip" data-chord="diminished">dim</button>
+          <button class="chip" data-chord="augmented">aug</button>
+        </div>
+      </div>
+      <small class="settings-hint">三和音・7・Maj7・add6・add9 は長調/短調で三度が自動切替。sus/dim/aug は三度を含まず固定。</small>
     </section>
 
     <section class="settings-section">
@@ -251,27 +282,6 @@
     </section>
 
     <p class="info-footer">本家: <a href="https://ngmt4amtk-web.github.io/jawari-web/">ドローンサウンド</a></p>
-  </div>
-</div>
-
-<!-- ============================================= -->
-<!-- KEY PICKER SHEET (tonic pitch class)           -->
-<!-- ============================================= -->
-<div class="sheet" id="sheet-key" hidden>
-  <div class="sheet-head">
-    <h2>主音を選ぶ</h2>
-    <button class="icon-btn close-btn" data-close="sheet-key" aria-label="閉じる">&times;</button>
-  </div>
-  <div class="sheet-body">
-    <div class="chip-row chip-row-wrap chip-row-big" id="key-pc-chips"></div>
-    <div class="field">
-      <span class="field-sublabel">スケール</span>
-      <div class="chip-row" id="key-scale-chips">
-        <button class="chip" data-scale="major">長調</button>
-        <button class="chip" data-scale="naturalMinor">短調(自然)</button>
-        <button class="chip" data-scale="harmonicMinor">短調(和声)</button>
-      </div>
-    </div>
   </div>
 </div>
 
