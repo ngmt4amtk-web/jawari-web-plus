@@ -980,6 +980,10 @@ el.volume.value = Math.round(state.volume * 100);
 
 const allSheets = ["sheet-settings", "sheet-info", "sheet-bar-edit"];
 
+function isAnySheetOpen() {
+  return allSheets.some(s => { const e = $("#" + s); return e && !e.hidden; });
+}
+
 function openSheet(id) {
   allSheets.forEach(s => { const e = $("#" + s); if (e) e.hidden = s !== id; });
   el.backdrop.hidden = false;
@@ -988,10 +992,64 @@ function openSheet(id) {
 function closeAllSheets() {
   allSheets.forEach(s => { const e = $("#" + s); if (e) e.hidden = true; });
   el.backdrop.hidden = true;
+  // swipe 中の transform をリセット
+  allSheets.forEach(s => { const e = $("#" + s); if (e) e.style.transform = ""; });
 }
 
-el.backdrop.addEventListener("click", closeAllSheets);
-$$(".close-btn").forEach(b => b.addEventListener("click", closeAllSheets));
+// イベント委譲: 後から動的に生成された close ボタン含め全部捕捉
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".close-btn") || e.target.closest("[data-close]")) {
+    closeAllSheets();
+    return;
+  }
+  if (e.target === el.backdrop) {
+    closeAllSheets();
+  }
+});
+
+// ESC で閉じる
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && isAnySheetOpen()) {
+    closeAllSheets();
+  }
+});
+
+// 下スワイプで閉じる
+allSheets.forEach(id => {
+  const sheet = $("#" + id);
+  if (!sheet) return;
+  const head = sheet.querySelector(".sheet-head");
+  if (!head) return;
+  let startY = null;
+  let currentY = 0;
+  head.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    currentY = 0;
+    sheet.classList.add("dragging");
+  }, { passive: true });
+  head.addEventListener("touchmove", (e) => {
+    if (startY === null) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0) {
+      currentY = dy;
+      sheet.style.transform = `translateY(${dy}px)`;
+    }
+  }, { passive: true });
+  const endDrag = () => {
+    if (startY === null) return;
+    sheet.classList.remove("dragging");
+    if (currentY > 80) {
+      closeAllSheets();
+    } else {
+      sheet.style.transform = "";
+    }
+    startY = null;
+    currentY = 0;
+  };
+  head.addEventListener("touchend", endDrag);
+  head.addEventListener("touchcancel", endDrag);
+});
 
 el.btnSettings.addEventListener("click", () => openSheet("sheet-settings"));
 el.btnInfo.addEventListener("click", () => openSheet("sheet-info"));

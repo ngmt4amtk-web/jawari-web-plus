@@ -91,7 +91,14 @@ input[type="range"] { accent-color: var(--gold); }
   transition: background 0.15s, color 0.15s;
 }
 .icon-btn:active { background: var(--glass-strong); color: var(--text); }
-.icon-btn.close-btn { font-size: 22px; line-height: 1; }
+.icon-btn.close-btn {
+  /* 指がズレやすいので tap 判定を広め、見た目は同じサイズに保つ */
+  width: 44px;
+  height: 44px;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 300;
+}
 
 .brand {
   font-size: 14px;
@@ -647,6 +654,26 @@ input[type="range"] { accent-color: var(--gold); }
   justify-content: space-between;
   padding: 16px 20px 8px;
   border-bottom: 1px solid var(--glass-border);
+  position: relative;
+  /* 下スワイプで閉じる挙動に対応 — タッチ開始点 */
+  touch-action: pan-y;
+  cursor: grab;
+}
+.sheet-head::before {
+  /* ドラッグ可能を示す pill */
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+}
+/* 指を離した時のスナップバック */
+.sheet:not(.dragging) {
+  transition: transform 0.2s ease-out;
 }
 
 .sheet-body {
