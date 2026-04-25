@@ -105,7 +105,10 @@
   <section class="field-block bars-section">
     <div class="bars-header">
       <h3 class="field-label">小節ごとのコード</h3>
-      <button class="text-btn" id="add-bar">＋ 小節追加</button>
+      <div class="bars-header-buttons">
+        <button class="text-btn" id="btn-progression-edit" aria-label="テキストで一括編集">📝 テキスト</button>
+        <button class="text-btn" id="add-bar">＋ 小節追加</button>
+      </div>
     </div>
     <div class="bars-list" id="bars-list"></div>
   </section>
@@ -358,6 +361,60 @@
     </section>
 
     <button class="danger-btn" id="bar-edit-delete">この小節を削除</button>
+  </div>
+</div>
+
+<!-- ============================================= -->
+<!-- PROGRESSION EDITOR SHEET (DSL + templates)    -->
+<!-- ============================================= -->
+<div class="sheet" id="sheet-progression-edit" hidden>
+  <div class="sheet-head">
+    <h2>進行エディタ</h2>
+    <button class="icon-btn close-btn" data-close="sheet-progression-edit" aria-label="閉じる">&times;</button>
+  </div>
+  <div class="sheet-body">
+
+    <section class="settings-section">
+      <h3 class="settings-heading">テキスト編集</h3>
+      <textarea id="progression-text" class="progression-textarea" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+      <div class="progression-btns">
+        <button class="btn btn-primary" id="apply-progression">このテキストを反映</button>
+        <button class="btn btn-secondary" id="copy-progression">📋 コピー</button>
+        <button class="btn btn-secondary" id="share-progression">🔗 URLを共有</button>
+      </div>
+      <small class="settings-hint">書き換えて「反映」を押すと現在の進行を丸ごと置き換え。下の「記法」を参照。</small>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">定型テンプレ</h3>
+      <div class="chip-row chip-row-wrap" id="template-chips"></div>
+      <small class="settings-hint">チップを押すとその進行が上のテキスト欄と小節に入る。</small>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">保存した進行</h3>
+      <div class="save-row">
+        <input type="text" id="preset-name-input" placeholder="名前を入力（例: バッハ Pt1）">
+        <button class="btn btn-primary" id="save-preset">保存</button>
+      </div>
+      <div id="preset-list"></div>
+    </section>
+
+    <section class="settings-section">
+      <h3 class="settings-heading">記法リファレンス</h3>
+      <div class="dsl-help">
+        <p><strong>メタ情報</strong>（先頭に）:</p>
+        <p><code>key: C major</code> / <code>key: Am</code> / <code>key: D harmonic</code></p>
+        <p><code>bpm: 120</code> · <code>time: 4/4</code> · <code>count-in: 1</code></p>
+        <p><strong>小節（<code>|</code> で区切る）</strong>:</p>
+        <p><code>| I | IV | V | I |</code></p>
+        <p>度数 <code>I II III IV V VI VII</code> = Major、小文字 <code>i ii iii iv v vi vii</code> = minor</p>
+        <p><strong>和音種 suffix</strong>: <code>I7</code> <code>Imaj7</code> <code>Isus2</code> <code>Isus4</code> <code>Iadd6</code> <code>Iadd9</code> <code>viidim</code> <code>viidim7</code> <code>iim7b5</code> <code>Iaug</code> <code>I5</code>（1+5）</p>
+        <p><strong>転調 <code>@</code></strong>: <code>V7@G</code> = Ⅴ7 を鳴らし、この小節から G major へ。<code>@Am</code> = A minor、<code>@Dh</code> = D harmonic</p>
+        <p><strong>コメント</strong>: <code>#</code> から行末までは無視（空行も無視）</p>
+      </div>
+    </section>
+
   </div>
 </div>
 

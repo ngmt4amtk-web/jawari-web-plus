@@ -978,7 +978,7 @@ el.volume.value = Math.round(state.volume * 100);
 // Sheets
 // ========================================
 
-const allSheets = ["sheet-settings", "sheet-info", "sheet-bar-edit"];
+const allSheets = ["sheet-settings", "sheet-info", "sheet-bar-edit", "sheet-progression-edit"];
 
 function isAnySheetOpen() {
   return allSheets.some(s => { const e = $("#" + s); return e && !e.hidden; });
@@ -1357,5 +1357,540 @@ function renderAll() {
   setActiveChip(el.timbreChips, "timbre", state.timbre);
   el.accentFirstBeat.checked = state.progression.accentFirstBeat;
 }
+
+// ========================================
+// Progression DSL — parse / emit text notation
+// ========================================
+//
+// 書式例:
+//   key: C major
+//   bpm: 120
+//   time: 4/4
+//   count-in: 1
+//
+//   | I | IV | V | I |
+//   | vi | ii | V7@G | Imaj7 |
+//
+// 度数: I II III IV V VI VII = Major, i ii iii iv v vi vii = minor
+// suffix: 7 / maj7 / sus2 / sus4 / add6 / add9 / dim / dim7 / aug / m7b5 / 5
+// @key: この小節からその調へ。例 V7@G (G major), @Am (A minor), @Dh (D harmonic)
+
+const ROMAN_MAP = { i: 0, ii: 1, iii: 2, iv: 3, v: 4, vi: 5, vii: 6 };
+const ROMAN_NUMS = ["I", "II", "III", "IV", "V", "VI", "VII"];
+
+const CHORD_SUFFIX_PARSE = {
+  "": null,
+  "7": "seventh",
+  "maj7": "maj7",
+  "M7": "maj7",
+  "Maj7": "maj7",
+  "sus2": "sus2",
+  "sus4": "sus4",
+  "dim": "diminished",
+  "dim7": "diminishedSeventh",
+  "aug": "augmented",
+  "m7b5": "halfDim7",
+  "add6": "add6",
+  "add9": "add9",
+  "5": "rootFifth",
+  "oct": "rootOctave",
+  "1": "root"
+};
+const CHORD_SUFFIX_EMIT = {
+  root: "1",
+  rootFifth: "5",
+  rootOctave: "oct",
+  rootFifthOctave: "oct5",
+  triad: "",
+  triadOctave: "",
+  sus2: "sus2",
+  sus4: "sus4",
+  seventh: "7",
+  maj7: "maj7",
+  halfDim7: "m7b5",
+  diminishedSeventh: "dim7",
+  add6: "add6",
+  add9: "add9",
+  diminished: "dim",
+  augmented: "aug"
+};
+
+function parseKeyText(text) {
+  if (!text) return null;
+  text = String(text).trim();
+  const m = text.match(/^([A-Ga-g])([#♯b♭]?)/);
+  if (!m) return null;
+  const pcMap = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  let pc = pcMap[m[1].toUpperCase()];
+  if (pc === undefined) return null;
+  const acc = m[2];
+  if (acc === "#" || acc === "♯") pc = (pc + 1) % 12;
+  else if (acc === "b" || acc === "♭") pc = (pc + 11) % 12;
+
+  const rest = text.slice(m[0].length).trim().toLowerCase();
+  let scaleForm = "major";
+  // "m" alone or followed by anything that isn't "maj" = minor
+  if (rest.startsWith("m") && !rest.startsWith("maj")) scaleForm = "naturalMinor";
+  else if (/\bminor\b|\bmin\b/.test(rest)) scaleForm = "naturalMinor";
+  // harmonic が含まれていれば強制的に harmonicMinor
+  if (rest.includes("h") && (rest.includes("harmonic") || /^h$/.test(rest))) scaleForm = "harmonicMinor";
+  else if (rest.includes("harmonic")) scaleForm = "harmonicMinor";
+  return { tonicPitchClass: pc, scaleForm };
+}
+
+function parseBarToken(token) {
+  if (!token) return null;
+  token = token.trim();
+  if (!token) return null;
+
+  // @key 末尾
+  let keyChange = null;
+  const atIdx = token.indexOf("@");
+  let body = token;
+  if (atIdx >= 0) {
+    keyChange = parseKeyText(token.slice(atIdx + 1));
+    body = token.slice(0, atIdx).trim();
+  }
+
+  // roman 抽出 — 長いものから順に
+  const m = body.match(/^(b?)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/);
+  if (!m) {
+    // roman 無しだが @key がある場合は前の bar の度数を維持できないので fallback
+    return keyChange ? { degree: 0, quality: "major", chordPreset: null, keyChange } : null;
+  }
+  const roman = m[2];
+  const isUpper = roman === roman.toUpperCase();
+  const degree = ROMAN_MAP[roman.toLowerCase()];
+  const suffix = body.slice(m[0].length);
+
+  // suffix 解決（case-sensitive first, then insensitive）
+  let chordPreset = null;
+  if (suffix in CHORD_SUFFIX_PARSE) chordPreset = CHORD_SUFFIX_PARSE[suffix];
+  else {
+    const lc = suffix.toLowerCase();
+    if (lc in CHORD_SUFFIX_PARSE) chordPreset = CHORD_SUFFIX_PARSE[lc];
+  }
+
+  return {
+    degree,
+    quality: isUpper ? "major" : "minor",
+    chordPreset,
+    keyChange
+  };
+}
+
+function parseProgressionText(text) {
+  const meta = {};
+  const bars = [];
+  const lines = String(text).split(/\r?\n/);
+  for (let raw of lines) {
+    const line = raw.replace(/#.*$/, "").trim();
+    if (!line) continue;
+    // meta line?
+    const metaMatch = line.match(/^([a-zA-Z][a-zA-Z0-9_-]*)\s*:\s*(.+)$/);
+    if (metaMatch && !/\|/.test(line)) {
+      meta[metaMatch[1].toLowerCase()] = metaMatch[2].trim();
+      continue;
+    }
+    // bar tokens (pipe-separated)
+    const tokens = line.split("|").map(t => t.trim()).filter(t => t.length > 0);
+    for (const tok of tokens) {
+      const parsed = parseBarToken(tok);
+      if (parsed) bars.push(parsed);
+    }
+  }
+  return { meta, bars };
+}
+
+function scaleFormLabel(sf) {
+  if (sf === "naturalMinor") return "minor";
+  if (sf === "harmonicMinor") return "harmonic minor";
+  return "major";
+}
+
+function emitProgressionText() {
+  const metaLines = [
+    `key: ${PITCH_CLASSES[state.tonicPitchClass].name} ${scaleFormLabel(state.scaleForm)}`,
+    `bpm: ${state.progression.bpm}`,
+    `time: ${state.progression.beatsPerBar}/${state.progression.beatUnit}`,
+    `count-in: ${state.progression.countInBars}`
+  ];
+
+  const barTokens = state.progression.bars.map(b => {
+    let roman = ROMAN_NUMS[Math.min(b.degree, 6)];
+    if (b.quality === "minor") roman = roman.toLowerCase();
+    const sfx = CHORD_SUFFIX_EMIT[b.chordPreset || "triad"] || "";
+    let keyTag = "";
+    if (b.keyChange) {
+      const n = PITCH_CLASSES[b.keyChange.tonicPitchClass].name;
+      const sc = b.keyChange.scaleForm === "major" ? "" :
+                 b.keyChange.scaleForm === "naturalMinor" ? "m" : "h";
+      keyTag = `@${n}${sc}`;
+    }
+    return roman + sfx + keyTag;
+  });
+
+  // 4 bars per line (or matches time signature numerator if small)
+  const perLine = Math.max(4, state.progression.beatsPerBar);
+  const barLines = [];
+  for (let i = 0; i < barTokens.length; i += perLine) {
+    const slice = barTokens.slice(i, i + perLine);
+    barLines.push("| " + slice.join(" | ") + " |");
+  }
+
+  return metaLines.join("\n") + "\n\n" + (barLines.length > 0 ? barLines.join("\n") : "");
+}
+
+function normalizeBars() {
+  state.progression.bars.forEach(b => {
+    if (b.degree === undefined || b.degree === null) b.degree = 0;
+    if (!b.quality) b.quality = "major";
+    if (b.chordPreset && !CHORD_PRESETS[b.chordPreset]) b.chordPreset = null;
+  });
+  if (state.progression.bars.length === 0) {
+    state.progression.bars = [{ degree: 0, quality: "major" }];
+  }
+}
+
+function applyProgression(parsed) {
+  if (!parsed) return;
+  const meta = parsed.meta || {};
+  // key
+  if (meta.key) {
+    const k = parseKeyText(meta.key);
+    if (k) {
+      state.tonicPitchClass = k.tonicPitchClass;
+      state.scaleForm = k.scaleForm;
+    }
+  }
+  // bpm
+  if (meta.bpm) {
+    const v = Number(meta.bpm);
+    if (!isNaN(v)) state.progression.bpm = clampBpm(v);
+  }
+  // time
+  if (meta.time) {
+    const m = meta.time.match(/(\d+)\s*\/\s*(\d+)/);
+    if (m) {
+      state.progression.beatsPerBar = Number(m[1]);
+      state.progression.beatUnit = Number(m[2]);
+      normalizeTimeSig();
+    }
+  }
+  // count-in
+  if (meta["count-in"] !== undefined) {
+    const v = Number(meta["count-in"]);
+    if (!isNaN(v) && v >= 0 && v <= 2) state.progression.countInBars = Math.round(v);
+  }
+
+  if (parsed.bars && parsed.bars.length > 0) {
+    state.progression.bars = parsed.bars.map(b => ({ ...b }));
+  }
+  normalizeBars();
+  saveState();
+
+  // Force a full re-render so every UI piece reflects the new state
+  if (progression.running) {
+    progression.stop();
+    if (engine.isPlaying) engine.setPlaying(false);
+  }
+  renderAll();
+  pushConfigToEngine();
+}
+
+// ========================================
+// Clipboard helper
+// ========================================
+
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {}
+  // fallback
+  try {
+    const t = document.createElement("textarea");
+    t.value = text;
+    t.style.position = "fixed";
+    t.style.opacity = "0";
+    document.body.appendChild(t);
+    t.focus();
+    t.select();
+    document.execCommand("copy");
+    document.body.removeChild(t);
+    return true;
+  } catch { return false; }
+}
+
+function flashButtonLabel(btn, msg, duration = 1500) {
+  const orig = btn.textContent;
+  btn.textContent = msg;
+  btn.disabled = true;
+  setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, duration);
+}
+
+// ========================================
+// URL hash — share progressions via link
+// ========================================
+
+function buildShareUrl() {
+  const text = emitProgressionText();
+  try {
+    // UTF-8 safe base64
+    const b64 = btoa(unescape(encodeURIComponent(text)));
+    return location.origin + location.pathname + "#p=" + b64;
+  } catch {
+    return location.href;
+  }
+}
+
+function loadFromHashIfPresent() {
+  const m = location.hash.match(/[#&]p=([^&]+)/);
+  if (!m) return false;
+  try {
+    const decoded = decodeURIComponent(escape(atob(m[1])));
+    const parsed = parseProgressionText(decoded);
+    if (parsed.bars.length > 0 || Object.keys(parsed.meta).length > 0) {
+      applyProgression(parsed);
+      // ロード後 hash を消して上書き誘発を防ぐ
+      history.replaceState(null, "", location.pathname);
+      return true;
+    }
+  } catch (e) {
+    console.warn("progression URL load failed", e);
+  }
+  return false;
+}
+
+// ========================================
+// Saved presets (localStorage)
+// ========================================
+
+const PRESETS_KEY = "jawari-plus.presets";
+
+function listSavedPresets() {
+  try {
+    return JSON.parse(localStorage.getItem(PRESETS_KEY) || "{}");
+  } catch { return {}; }
+}
+
+function savePreset(name, text) {
+  if (!name) return false;
+  const presets = listSavedPresets();
+  presets[name] = { text, updatedAt: new Date().toISOString() };
+  try {
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+    return true;
+  } catch { return false; }
+}
+
+function deletePreset(name) {
+  const presets = listSavedPresets();
+  delete presets[name];
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+}
+
+// ========================================
+// Built-in templates
+// ========================================
+
+const TEMPLATES = {
+  "王道 Ⅰ-Ⅳ-Ⅴ-Ⅰ": `key: C major
+bpm: 100
+time: 4/4
+count-in: 1
+
+| I | IV | V | I |`,
+  "Pop Ⅰ-Ⅴ-Ⅵ-Ⅳ": `key: C major
+bpm: 110
+time: 4/4
+count-in: 1
+
+| I | V | vi | IV |`,
+  "ii-V-I (Jazz)": `key: C major
+bpm: 120
+time: 4/4
+count-in: 1
+
+| ii7 | V7 | Imaj7 | Imaj7 |`,
+  "カノン進行": `key: D major
+bpm: 80
+time: 4/4
+count-in: 1
+
+| I | V | vi | iii |
+| IV | I | IV | V |`,
+  "12小節ブルース C": `key: C major
+bpm: 100
+time: 4/4
+count-in: 1
+
+| I7 | I7 | I7 | I7 |
+| IV7 | IV7 | I7 | I7 |
+| V7 | IV7 | I7 | V7 |`,
+  "和声短調 ⅰ-ⅳ-Ⅴ7-ⅰ": `key: A harmonic
+bpm: 80
+time: 3/4
+count-in: 1
+
+| i | iv | V7 | i |`,
+  "自然短調 ⅰ-ⅵ-ⅳ-Ⅴ": `key: A minor
+bpm: 90
+time: 4/4
+count-in: 1
+
+| i | vi | iv | V |`,
+  "転調例 C→G": `key: C major
+bpm: 100
+time: 4/4
+count-in: 1
+
+| I | IV | V | I |
+| V7@G | I | IV | V |`,
+  "重音練習 Ⅰ-Ⅳ-Ⅴ": `key: G major
+bpm: 60
+time: 4/4
+count-in: 1
+
+# sus も混ぜた長い持続用
+| I | I | Isus4 | I |
+| IV | IV | IVsus4 | IV |
+| V | V | V7 | V |
+| I | I | I | I |`,
+  "付点4分の6/8": `key: D major
+bpm: 140
+time: 6/8
+count-in: 1
+
+| I | V | vi | IV |`
+};
+
+// ========================================
+// Progression editor sheet wiring
+// ========================================
+
+function renderTemplateChips() {
+  const container = $("#template-chips");
+  if (!container) return;
+  container.innerHTML = "";
+  for (const name of Object.keys(TEMPLATES)) {
+    const c = document.createElement("button");
+    c.className = "chip";
+    c.textContent = name;
+    c.addEventListener("click", () => {
+      const text = TEMPLATES[name];
+      $("#progression-text").value = text;
+      applyProgression(parseProgressionText(text));
+    });
+    container.appendChild(c);
+  }
+}
+
+function renderPresetList() {
+  const container = $("#preset-list");
+  if (!container) return;
+  const presets = listSavedPresets();
+  const entries = Object.entries(presets).sort((a, b) => {
+    return new Date(b[1].updatedAt || 0) - new Date(a[1].updatedAt || 0);
+  });
+  if (entries.length === 0) {
+    container.innerHTML = `<small class="settings-hint">まだ保存された進行はありません。上のテキストを編集して「保存」で名前付き保存できます。</small>`;
+    return;
+  }
+  container.innerHTML = "";
+  for (const [name, data] of entries) {
+    const row = document.createElement("div");
+    row.className = "preset-item";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "preset-name";
+    nameEl.textContent = name;
+    row.appendChild(nameEl);
+
+    const metaEl = document.createElement("span");
+    metaEl.className = "preset-meta";
+    try {
+      const d = new Date(data.updatedAt);
+      metaEl.textContent = `${d.getMonth() + 1}/${d.getDate()}`;
+    } catch { metaEl.textContent = ""; }
+    row.appendChild(metaEl);
+
+    const loadBtn = document.createElement("button");
+    loadBtn.className = "btn btn-secondary";
+    loadBtn.textContent = "読込";
+    loadBtn.addEventListener("click", () => {
+      $("#progression-text").value = data.text;
+      applyProgression(parseProgressionText(data.text));
+    });
+    row.appendChild(loadBtn);
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-secondary";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", () => {
+      if (confirm(`「${name}」を削除しますか?`)) {
+        deletePreset(name);
+        renderPresetList();
+      }
+    });
+    row.appendChild(delBtn);
+
+    container.appendChild(row);
+  }
+}
+
+function openProgressionEditor() {
+  const ta = $("#progression-text");
+  if (ta) ta.value = emitProgressionText();
+  renderTemplateChips();
+  renderPresetList();
+  openSheet("sheet-progression-edit");
+}
+
+$("#btn-progression-edit")?.addEventListener("click", openProgressionEditor);
+
+$("#apply-progression")?.addEventListener("click", () => {
+  const text = $("#progression-text").value;
+  const parsed = parseProgressionText(text);
+  if (parsed.bars.length === 0 && Object.keys(parsed.meta).length === 0) {
+    flashButtonLabel($("#apply-progression"), "⚠ パースできませんでした");
+    return;
+  }
+  applyProgression(parsed);
+  flashButtonLabel($("#apply-progression"), "✓ 反映しました");
+});
+
+$("#copy-progression")?.addEventListener("click", async () => {
+  const text = $("#progression-text").value;
+  const ok = await copyToClipboard(text);
+  flashButtonLabel($("#copy-progression"), ok ? "✓ コピーしました" : "⚠ コピー失敗");
+});
+
+$("#share-progression")?.addEventListener("click", async () => {
+  const url = buildShareUrl();
+  const ok = await copyToClipboard(url);
+  flashButtonLabel($("#share-progression"), ok ? "✓ URLをコピー" : "⚠ コピー失敗");
+});
+
+$("#save-preset")?.addEventListener("click", () => {
+  const nameInput = $("#preset-name-input");
+  const name = nameInput.value.trim();
+  if (!name) {
+    alert("名前を入力してください");
+    nameInput.focus();
+    return;
+  }
+  const text = $("#progression-text").value || emitProgressionText();
+  if (savePreset(name, text)) {
+    nameInput.value = "";
+    renderPresetList();
+    flashButtonLabel($("#save-preset"), "✓ 保存");
+  }
+});
+
+// 起動時に URL hash から読み込み
+loadFromHashIfPresent();
 
 requestAnimationFrame(renderAll);

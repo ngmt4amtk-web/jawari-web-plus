@@ -565,6 +565,114 @@ input[type="range"] { accent-color: var(--gold); }
 }
 .danger-btn:active { background: rgba(240, 99, 99, 0.2); }
 
+/* progression editor */
+.bars-header-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.progression-textarea {
+  width: 100%;
+  min-height: 180px;
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 12px;
+  font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.progression-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  border: 1px solid transparent;
+  font-family: inherit;
+}
+.btn-primary {
+  background: var(--gold);
+  color: #18110a;
+  border-color: var(--gold);
+}
+.btn-primary:active { background: var(--gold-deep); }
+.btn-secondary {
+  background: var(--glass);
+  color: var(--text);
+  border-color: var(--glass-border);
+}
+.btn-secondary:active { background: var(--glass-strong); }
+
+.save-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.save-row input {
+  flex: 1;
+  font-size: 14px;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+.preset-item .preset-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preset-item .preset-meta {
+  font-size: 11px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.preset-item .btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.dsl-help p {
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0 0 6px;
+  color: var(--text-dim);
+}
+.dsl-help p strong { color: var(--text); }
+.dsl-help code {
+  font-family: "SF Mono", Menlo, monospace;
+  background: rgba(255,255,255,0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--gold);
+  font-size: 11.5px;
+}
+
 /* ============ TRANSPORT ============ */
 .transport-section {
   display: flex;
