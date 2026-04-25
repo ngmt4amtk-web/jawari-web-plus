@@ -1599,6 +1599,58 @@ function applyProgression(parsed) {
 }
 
 // ========================================
+// Input normalizer — paste された文字列を平文DSLに戻す
+// ========================================
+//
+// ユーザーがペーストしうる形式:
+//   (a) 生DSL (平文)                          — そのまま
+//   (b) percent-encoded ("key%3A%20..." 系)    — decodeURIComponent
+//   (c) 共有URLまるごと ("...#p=<base64>")      — hash 抽出 → base64 decode
+//   (d) bare base64 (hash 無しで base64 だけ)  — base64 decode
+
+function tryDecodeAnyFormat(text) {
+  if (!text) return text;
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+
+  // (c) full URL containing #p= or &p=
+  const urlMatch = trimmed.match(/[#&]p=([A-Za-z0-9+/=_\-]+)/);
+  if (urlMatch) {
+    try {
+      const b64 = urlMatch[1].replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = decodeURIComponent(escape(atob(b64)));
+      if (looksLikeDSL(decoded)) return decoded;
+    } catch {}
+  }
+
+  // (d) bare base64 — 1行で base64 っぽく、長めで、デコードすると DSL っぽい
+  if (/^[A-Za-z0-9+/=_\-]+$/.test(trimmed) && trimmed.length >= 20 && !trimmed.includes(" ")) {
+    try {
+      const b64 = trimmed.replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = decodeURIComponent(escape(atob(b64)));
+      if (looksLikeDSL(decoded)) return decoded;
+    } catch {}
+  }
+
+  // (b) percent-encoded — %XX が含まれ、改行は encode された状態 (\n が無い)
+  if (/%[0-9A-Fa-f]{2}/.test(trimmed) && !trimmed.includes("\n")) {
+    try {
+      const decoded = decodeURIComponent(trimmed);
+      if (looksLikeDSL(decoded)) return decoded;
+    } catch {}
+  }
+
+  // (a) fallback: そのまま
+  return text;
+}
+
+function looksLikeDSL(s) {
+  if (!s) return false;
+  // key:, bpm:, time:, count-in: のどれか、あるいは | 区切りの小節があれば DSL とみなす
+  return /^\s*(key|bpm|time|count-in)\s*:/m.test(s) || /\|\s*[A-Ga-gIiVv]/.test(s);
+}
+
+// ========================================
 // Clipboard helper
 // ========================================
 
@@ -1852,7 +1904,12 @@ function openProgressionEditor() {
 $("#btn-progression-edit")?.addEventListener("click", openProgressionEditor);
 
 $("#apply-progression")?.addEventListener("click", () => {
-  const text = $("#progression-text").value;
+  const raw = $("#progression-text").value;
+  const text = tryDecodeAnyFormat(raw);
+  if (text !== raw) {
+    // 正規化された平文を textarea にも反映しておく
+    $("#progression-text").value = text;
+  }
   const parsed = parseProgressionText(text);
   if (parsed.bars.length === 0 && Object.keys(parsed.meta).length === 0) {
     flashButtonLabel($("#apply-progression"), "⚠ パースできませんでした");
@@ -1860,6 +1917,16 @@ $("#apply-progression")?.addEventListener("click", () => {
   }
   applyProgression(parsed);
   flashButtonLabel($("#apply-progression"), "✓ 反映しました");
+});
+
+// paste 直後にも自動で正規化（次に反映を押さなくても見た目が綺麗になる）
+$("#progression-text")?.addEventListener("paste", () => {
+  // paste イベントの時点では value は未更新、次の tick で処理
+  setTimeout(() => {
+    const raw = $("#progression-text").value;
+    const decoded = tryDecodeAnyFormat(raw);
+    if (decoded !== raw) $("#progression-text").value = decoded;
+  }, 0);
 });
 
 $("#copy-progression")?.addEventListener("click", async () => {
