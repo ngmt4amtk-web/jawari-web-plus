@@ -1903,6 +1903,19 @@ function openProgressionEditor() {
 
 $("#btn-progression-edit")?.addEventListener("click", openProgressionEditor);
 
+// 進行エディタ内の「詳しいリファレンスは使い方へ」— 開き直す
+$("#open-info-from-editor")?.addEventListener("click", () => {
+  openSheet("sheet-info");
+  // 使い方シートを開いた後、DSL セクションを自動で展開してあげる
+  requestAnimationFrame(() => {
+    const folds = $$(".info-fold");
+    folds.forEach((f, i) => {
+      // "📝 テキスト記法" は 2 番目
+      if (i === 1) f.setAttribute("open", "");
+    });
+  });
+});
+
 $("#apply-progression")?.addEventListener("click", () => {
   const raw = $("#progression-text").value;
   const text = tryDecodeAnyFormat(raw);

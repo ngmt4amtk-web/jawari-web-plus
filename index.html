@@ -257,32 +257,172 @@
     <button class="icon-btn close-btn" data-close="sheet-info" aria-label="閉じる">&times;</button>
   </div>
   <div class="sheet-body">
-    <section class="info-section">
-      <h3>基本操作</h3>
-      <ol>
-        <li><strong>BPM を設定</strong>：大きな数字をタップ→直接入力、または ±1/±10 ボタン・下のスライダーで調整</li>
-        <li><strong>Tap Tempo</strong>：タップ間隔の平均から BPM を自動算出</li>
-        <li><strong>拍子</strong>：2/4, 4/4, 3/4, 3/8, 6/8 から選ぶ</li>
-        <li><strong>カウントイン</strong>：START 押下から何小節分クリックしてから本番に入るか</li>
-        <li><strong>小節ごとのコード</strong>：各小節で何度の和音を鳴らすか (Ⅰ〜Ⅶ と Major/minor)</li>
-        <li><strong>START</strong>：メトロノームとドローン和音が連動して鳴り出す</li>
-      </ol>
-    </section>
 
-    <section class="info-section">
-      <h3>主音の取り方</h3>
-      <p><strong>独奏（デフォルト）</strong>：基準Aから純5度連鎖。G-D-A-Eが弦楽器の開放弦調弦と一致。無伴奏バッハ・スケール・重音練習向け。</p>
-      <p><strong>ピアノ伴奏</strong>：基準Aから平均律。鍵盤楽器・電子楽器と合わせる標準。</p>
-      <p><strong>弦楽合奏</strong>：基準Aから5度を-2¢狭めた連鎖。純正長3度を優先する折衷調弦。</p>
-      <p><strong>カスタム Hz</strong>：主音の絶対周波数を直接指定。任意の基音上に純正律などで音程を積める。</p>
-    </section>
+    <details class="info-fold" open>
+      <summary>基本操作</summary>
+      <div class="info-fold-body">
+        <ol>
+          <li><strong>BPM を設定</strong> — 大きな数字をタップで直接入力、±1/±10 ボタン、スライダー、TAP TEMPO（タップ間隔から自動算出）</li>
+          <li><strong>主音 × スケール</strong> — BPMヒーローの下のセクションで直接選ぶ</li>
+          <li><strong>拍子・カウントイン</strong> — チップで一発選択（2/4, 4/4, 3/4, 3/8, 6/8）</li>
+          <li><strong>小節ごとのコード</strong> — 度数 chip、M/m トグル、⋯ で詳細編集（和音 override・転調）</li>
+          <li><strong>📝 テキスト</strong> — 独自記法で進行を一括編集・保存・共有</li>
+          <li><strong>START</strong> — メトロノームとドローン和音が連動して鳴り出す</li>
+        </ol>
+      </div>
+    </details>
 
-    <section class="info-section">
-      <h3>音律について</h3>
-      <p><strong>平均律</strong>：1オクターブを12等分。すべての協和音がわずかに濁るが、どの調に移っても同じ響き。</p>
-      <p><strong>ピタゴラス</strong>：主音から純5度(3:2)の連鎖。5度・4度は澄むが、長3度(81:64)は+7.8¢広い。旋律向け。</p>
-      <p><strong>純正律</strong>：3度 5:4, 5度 3:2, 6度 5:3 の整数比。長3度が-13.7¢低く、和音のハモリ密度が段違い。合奏・コード練習の相棒。</p>
-    </section>
+    <details class="info-fold">
+      <summary>📝 テキスト記法（DSL）— 完全ガイド</summary>
+      <div class="info-fold-body">
+
+        <h4>全体構造</h4>
+        <pre><code>key: C major
+bpm: 120
+time: 4/4
+count-in: 1
+
+| I | IV | V | I |
+| vi | ii | V7 | Imaj7 |
+
+# ← シャープは行コメント</code></pre>
+        <p>メタ行（<code>key:</code> <code>bpm:</code> <code>time:</code> <code>count-in:</code>）を上、空行で区切って小節行（<code>|</code> で区切る）を下。メタ行は省略可（省くと現在値を維持）。空行と <code>#</code> 始まりは無視。</p>
+
+        <h4>メタ行 1. key（調）</h4>
+        <p>書式: <code>key: &lt;ピッチ&gt;&lt;スケール&gt;</code></p>
+        <ul>
+          <li>ピッチ: <code>A B C D E F G</code> に必要なら <code>#</code> or <code>b</code>（<code>F#</code>, <code>Bb</code>, <code>C#</code> 等）</li>
+          <li>スケール: 省略 or <code>major</code> = 長調、<code>m</code> or <code>minor</code> = 自然短調、<code>harmonic</code> = 和声的短調</li>
+          <li>短縮形:
+            <code>C</code> = C長調、
+            <code>Am</code> = A自然短調、
+            <code>F#m</code> = F♯自然短調、
+            <code>Bbm</code> = B♭自然短調、
+            <code>D harmonic</code> or <code>Dh</code> = D和声短調
+          </li>
+        </ul>
+
+        <h4>メタ行 2. bpm / time / count-in</h4>
+        <p><code>bpm: 120</code> — 20〜300</p>
+        <p><code>time: 4/4</code> — <code>2/4</code> / <code>4/4</code> / <code>3/4</code> / <code>3/8</code> / <code>6/8</code> のどれか</p>
+        <p><code>count-in: 1</code> — <code>0</code>（オフ）/ <code>1</code> / <code>2</code>（小節数）</p>
+
+        <h4>小節行 — 度数（ローマ数字）</h4>
+        <p><code>| I | vi | IV | V |</code> のように <code>|</code> で区切る。1 行に何小節入れても OK。先頭・末尾の <code>|</code> は任意。</p>
+        <ul>
+          <li><strong>大文字 = Major 三度</strong>（長三和音）: <code>I II III IV V VI VII</code></li>
+          <li><strong>小文字 = minor 三度</strong>（短三和音）: <code>i ii iii iv v vi vii</code></li>
+        </ul>
+        <p>例: C major の <code>| I | vi | IV | V |</code> → C → Am → F → G</p>
+
+        <h4>和音種 suffix（度数の後ろ）</h4>
+        <p>suffix なしだと三和音。以下の suffix を付けるとその小節だけ 16 種の和音構成から選べる。</p>
+
+        <div class="suffix-table">
+          <div class="suffix-row"><code>I</code><span>三和音（1+3+5）</span></div>
+          <div class="suffix-row"><code>I5</code><span>空5度・パワーコード（1+5）</span></div>
+          <div class="suffix-row"><code>Ioct</code><span>オクターブ（1+8）</span></div>
+          <div class="suffix-row"><code>I1</code><span>単音（1 のみ）</span></div>
+          <div class="suffix-row"><code>I7</code><span>7 — 大文字なら属7型（V7等）、小文字なら m7</span></div>
+          <div class="suffix-row"><code>Imaj7</code><span>Maj7（長3度+自然7）/ <code>imaj7</code> は m(maj7)</span></div>
+          <div class="suffix-row"><code>Isus2</code><span>sus2（1+2+5、三度なし）</span></div>
+          <div class="suffix-row"><code>Isus4</code><span>sus4（1+4+5、三度なし）</span></div>
+          <div class="suffix-row"><code>Iadd6</code><span>add6（三和音+6度）</span></div>
+          <div class="suffix-row"><code>Iadd9</code><span>add9（三和音+9度）</span></div>
+          <div class="suffix-row"><code>Idim</code><span>減三和音（1+♭3+♭5）</span></div>
+          <div class="suffix-row"><code>Idim7</code><span>減7（1+♭3+♭5+♭♭7）</span></div>
+          <div class="suffix-row"><code>Im7b5</code><span>半減7 / 導7（1+♭3+♭5+♭7）</span></div>
+          <div class="suffix-row"><code>Iaug</code><span>増三和音（1+3+♯5）</span></div>
+        </div>
+
+        <p><strong>大文字・小文字の効き方</strong>: <code>7</code>、<code>maj7</code>、<code>add6</code>、<code>add9</code> は三度（M3/m3）を含むため度数の大小で変わる。<code>sus</code>、<code>dim</code>、<code>dim7</code>、<code>aug</code>、<code>m7b5</code>、<code>5</code>、<code>oct</code>、<code>1</code> は三度を持たない固定構成なので大小どちらでも同じ。</p>
+
+        <h4>転調 <code>@</code></h4>
+        <p>小節末に <code>@&lt;キー&gt;</code> を付けると、<strong>その小節から</strong>新しい調に切替わる（次の <code>@</code> が出るまで持続）。</p>
+        <div class="suffix-table">
+          <div class="suffix-row"><code>V7@G</code><span>Ⅴ7 を鳴らしつつ G 長調へ</span></div>
+          <div class="suffix-row"><code>I@Am</code><span>Ⅰ度を鳴らしつつ A 自然短調へ</span></div>
+          <div class="suffix-row"><code>i@Dh</code><span>ⅰ度を鳴らしつつ D 和声短調へ</span></div>
+          <div class="suffix-row"><code>@Eb</code><span>度数記述だけなら直前の度数を維持、E♭ 長調へ</span></div>
+        </div>
+        <p>スケール短縮: 無印=長調、<code>m</code>=自然短調、<code>h</code>=和声短調</p>
+
+        <h4>コメント・空行</h4>
+        <p><code>#</code> から行末までは無視。行頭・行末どちらでも可。空行も無視。</p>
+        <pre><code># A節
+| I | IV | V | I |   # 王道進行
+| vi | ii | V7 | I |
+
+# B節（転調）
+| V7@G | I | IV | V |</code></pre>
+
+        <h4>完全な例 — 16小節 C→G 転調</h4>
+        <pre><code>key: C major
+bpm: 90
+time: 4/4
+count-in: 1
+
+# A 節 — C major
+| I | IV | V | I |
+| vi | ii | V7 | Imaj7 |
+
+# B 節 — G major に転調
+| V7@G | I | IV | V |
+| vi | ii7 | V7 | Imaj7 |</code></pre>
+
+        <h4>完全な例 — Chaconne 主題 (BWV 1004)</h4>
+        <pre><code>key: D minor
+bpm: 60
+time: 3/4
+count-in: 1
+
+# Bach シャコンヌ 主題 8 小節
+| i | V | i | iv |
+| Vsus4 | V | i | V |</code></pre>
+
+        <h4>よくある間違い</h4>
+        <ul>
+          <li>度数と suffix の順は必ず <strong>度数が先</strong>: <code>7I</code> ✗ / <code>I7</code> ✓</li>
+          <li><strong>suffix 併用は不可</strong>: <code>V7sus4</code> ✗ — 単一 suffix のみ</li>
+          <li>全角ローマ数字 <code>Ⅰ Ⅱ Ⅲ</code> ✗ → 半角 <code>I II III</code></li>
+          <li>転調の <code>@</code> は小節末、度数と suffix の後ろ: <code>@GV7</code> ✗ / <code>V7@G</code> ✓</li>
+          <li>空白は任意: <code>|I|IV|V|I|</code> も <code>| I | IV | V | I |</code> も同じ</li>
+          <li><code>count-in</code> はハイフン込みで書く（アンダースコアや空白は無効）</li>
+        </ul>
+
+        <h4>ラウンドトリップ / 共有</h4>
+        <p>エディタを開くと現在の進行が自動で DSL に書き起こされて textarea に入る。そのままコピーして別デバイスに持っていけば完全復元できる。</p>
+        <p><strong>🔗 URLを共有</strong> ボタンは DSL を base64 化した共有 URL をクリップボードへ。LINE やメールに貼るだけで、相手がリンクを開いた瞬間に同じ進行がロードされる（設定シートの音律や音色なども同じ localStorage の範囲内では引き継がれる）。</p>
+        <p>貼り付け側は <strong>平文 DSL / URLエンコード済み文字列 / 共有URL 丸ごと / 裸の base64</strong> のどれでも受け付ける（自動で平文に戻す）。</p>
+
+        <h4>使い分けのヒント</h4>
+        <ul>
+          <li><strong>短い進行</strong> は主画面の chip UI で直接編集、<strong>10小節以上や転調多め</strong> はテキスト一括が楽</li>
+          <li>覚えておきたい進行は「保存した進行」に名前付け保存（レパートリーごと、曲ごと、レッスンごとに分けると便利）</li>
+          <li>生徒に事前に渡したいときは 🔗 URL共有でワンリンク化</li>
+          <li>定型テンプレは種として使い、必要なら編集して別名保存</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="info-fold">
+      <summary>主音の取り方（tonic tuning）</summary>
+      <div class="info-fold-body">
+        <p><strong>独奏（デフォルト）</strong> — 基準Aから純5度連鎖（ピタゴラス律）。G-D-A-Eが弦楽器の開放弦調弦と完全一致。無伴奏バッハ・スケール・重音練習の標準。</p>
+        <p><strong>ピアノ伴奏</strong> — 基準Aから平均律12等分。鍵盤楽器・電子楽器と合わせるときの標準。開放弦との間に5〜8¢の差が残る。</p>
+        <p><strong>弦楽合奏</strong> — 基準Aから5度を-2¢狭めた連鎖。純正長3度を優先する折衷調弦。コンマを12箇所に分散。</p>
+        <p><strong>カスタム Hz</strong> — 主音の絶対周波数をHzで直接指定。ピッチクラス無視で、その Hz がⅠ度として解釈される。</p>
+      </div>
+    </details>
+
+    <details class="info-fold">
+      <summary>音律について</summary>
+      <div class="info-fold-body">
+        <p><strong>平均律</strong> — 1オクターブを12等分。どの調に移っても響きが同じ代わりに協和音がわずかに濁る。</p>
+        <p><strong>ピタゴラス</strong> — 主音から純5度(3:2)の連鎖。5度・4度は澄むが、長3度(81:64)は平均律より +7.8¢ 広い。旋律向け。</p>
+        <p><strong>純正律</strong> — 3度 5:4, 5度 3:2, 6度 5:3 の整数比。長3度が平均律より -13.7¢ 低く、和音のハモリ密度が段違い。合奏・コード練習の相棒。</p>
+      </div>
+    </details>
 
     <p class="info-footer">本家: <a href="https://ngmt4amtk-web.github.io/jawari-web/">ドローンサウンド</a></p>
   </div>
@@ -401,17 +541,14 @@
     </section>
 
     <section class="settings-section">
-      <h3 class="settings-heading">記法リファレンス</h3>
+      <h3 class="settings-heading">記法クイックリファレンス</h3>
       <div class="dsl-help">
-        <p><strong>メタ情報</strong>（先頭に）:</p>
-        <p><code>key: C major</code> / <code>key: Am</code> / <code>key: D harmonic</code></p>
-        <p><code>bpm: 120</code> · <code>time: 4/4</code> · <code>count-in: 1</code></p>
-        <p><strong>小節（<code>|</code> で区切る）</strong>:</p>
-        <p><code>| I | IV | V | I |</code></p>
-        <p>度数 <code>I II III IV V VI VII</code> = Major、小文字 <code>i ii iii iv v vi vii</code> = minor</p>
-        <p><strong>和音種 suffix</strong>: <code>I7</code> <code>Imaj7</code> <code>Isus2</code> <code>Isus4</code> <code>Iadd6</code> <code>Iadd9</code> <code>viidim</code> <code>viidim7</code> <code>iim7b5</code> <code>Iaug</code> <code>I5</code>（1+5）</p>
-        <p><strong>転調 <code>@</code></strong>: <code>V7@G</code> = Ⅴ7 を鳴らし、この小節から G major へ。<code>@Am</code> = A minor、<code>@Dh</code> = D harmonic</p>
-        <p><strong>コメント</strong>: <code>#</code> から行末までは無視（空行も無視）</p>
+        <p><strong>メタ</strong> <code>key: C major</code> · <code>bpm: 120</code> · <code>time: 4/4</code> · <code>count-in: 1</code></p>
+        <p><strong>小節</strong> <code>| I | IV | V | I |</code>（大文字=Major, 小文字=minor）</p>
+        <p><strong>suffix</strong> <code>7</code> <code>maj7</code> <code>sus2</code> <code>sus4</code> <code>add6</code> <code>add9</code> <code>dim</code> <code>dim7</code> <code>m7b5</code> <code>aug</code> <code>5</code> <code>oct</code></p>
+        <p><strong>転調</strong> <code>V7@G</code> / <code>@Am</code> / <code>@Dh</code></p>
+        <p><strong>コメント</strong> <code>#</code> 以降は行末まで無視</p>
+        <p style="margin-top:10px"><button class="text-btn" id="open-info-from-editor" type="button">▸ 詳しいリファレンスは「使い方」へ</button></p>
       </div>
     </section>
 
